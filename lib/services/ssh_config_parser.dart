@@ -104,8 +104,13 @@ class SshConfigParser {
     return path;
   }
 
-  static String get homeDir =>
-      Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'] ?? Directory.current.path;
+  static String get homeDir {
+    final env = Platform.environment;
+    if (Platform.isWindows) {
+      return env['USERPROFILE'] ?? env['HOME'] ?? Directory.current.path;
+    }
+    return env['HOME'] ?? Directory.current.path;
+  }
 
   static Future<File?> _defaultConfigFile() async {
     final home = homeDir;
