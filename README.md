@@ -13,29 +13,19 @@
 
 ## 构建与运行
 
-先确认已安装 Flutter，并启用 Windows 桌面支持：
+先确认已安装 Flutter，并按目标平台启用桌面支持：
 
-```powershell
-flutter config --enable-windows-desktop
+```bash
 flutter doctor
-```
-
-获取依赖并运行测试：
-
-```powershell
 flutter pub get
 flutter test
 ```
 
-本地调试运行：
+### Windows
 
 ```powershell
+flutter config --enable-windows-desktop
 flutter run -d windows
-```
-
-构建 Windows 可执行文件：
-
-```powershell
 flutter build windows
 ```
 
@@ -43,4 +33,20 @@ flutter build windows
 
 ```text
 build/windows/x64/runner/Release/gpu_monitor.exe
+```
+
+### macOS
+
+macOS 构建需要安装 Xcode，并启用 macOS 桌面支持：
+
+```bash
+flutter config --enable-macos-desktop
+flutter run -d macos
+flutter build macos
+```
+
+构建产物位于：
+
+```text
+build/macos/Build/Products/Release/GPU Monitor.app
 ```
