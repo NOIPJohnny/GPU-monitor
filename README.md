@@ -50,3 +50,21 @@ flutter build macos
 ```text
 build/macos/Build/Products/Release/GPU Monitor.app
 ```
+
+### GitHub Actions 自动发布
+
+仓库包含 `.github/workflows/release.yml`，推送 `v*` tag 时会自动构建 Windows 和 macOS 包，并上传到 GitHub Release：
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+也可以在 GitHub 的 Actions 页面手动触发该 workflow，并填写 `v1.0.0` 这样的 release tag。自动发布会生成：
+
+```text
+GPU-Monitor-Windows.zip
+GPU-Monitor-macOS.zip
+```
+
+当前 macOS 包未做 Developer ID 签名和 notarization，首次打开时可能会提示来源无法验证。
