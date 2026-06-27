@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/gpu_info.dart';
+import '../models/gpu_process_info.dart';
 
 /// One GPU: name + utilization/memory bars + temp/power stats.
 class GpuCard extends StatelessWidget {
@@ -21,17 +22,22 @@ class GpuCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 12,
                   backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Text('${gpu.index}',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold)),
+                  child: Text(
+                    '${gpu.index}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(gpu.name,
-                      style: theme.textTheme.titleSmall,
-                      overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    gpu.name,
+                    style: theme.textTheme.titleSmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -57,17 +63,23 @@ class GpuCard extends StatelessWidget {
             Row(
               children: [
                 _Stat(
-                    icon: Icons.thermostat,
-                    label: '温度',
-                    value: gpu.temp != null ? '${gpu.temp}°C' : 'N/A'),
+                  icon: Icons.thermostat,
+                  label: '温度',
+                  value: gpu.temp != null ? '${gpu.temp}°C' : 'N/A',
+                ),
                 const SizedBox(width: 16),
                 _Stat(
-                    icon: Icons.bolt,
-                    label: '功耗',
-                    value:
-                        gpu.powerDraw != null ? '${gpu.powerDraw!.toStringAsFixed(1)}W' : 'N/A'),
+                  icon: Icons.bolt,
+                  label: '功耗',
+                  value: gpu.powerDraw != null
+                      ? '${gpu.powerDraw!.toStringAsFixed(1)}W'
+                      : 'N/A',
+                ),
               ],
             ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            _ProcessDetails(gpu),
           ],
         ),
       ),
@@ -88,18 +100,129 @@ class GpuCard extends StatelessWidget {
   }
 }
 
+class _ProcessDetails extends StatelessWidget {
+  final GpuInfo gpu;
+
+  const _ProcessDetails(this.gpu);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (gpu.processes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '无 GPU 进程',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
+        dense: true,
+        title: Text(
+          '${gpu.processes.length} 个进程 · ${GpuCard._fmtMiB(gpu.processMemoryUsed)}',
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: const Icon(Icons.expand_more),
+        children: [
+          const SizedBox(height: 4),
+          for (final process in gpu.processes) _ProcessRow(process),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProcessRow extends StatelessWidget {
+  final GpuProcessInfo process;
+
+  const _ProcessRow(this.process);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final command = process.command ?? process.name;
+    final detailStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  command,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                GpuCard._fmtMiB(process.usedMemory),
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Wrap(
+            spacing: 8,
+            runSpacing: 2,
+            children: [
+              Text('PID ${process.pid}', style: detailStyle),
+              if (process.user != null) Text(process.user!, style: detailStyle),
+              if (process.elapsed != null)
+                Text('运行 ${process.elapsed}', style: detailStyle),
+              Text('SM ${_fmtPct(process.smUtil)}', style: detailStyle),
+              Text('MEM ${_fmtPct(process.memUtil)}', style: detailStyle),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtPct(int? value) => value == null ? 'N/A' : '$value%';
+}
+
 class _Bar extends StatelessWidget {
   final String label;
   final double? value; // 0..100
   final String unit;
   final String valueText;
   final Color color;
-  const _Bar(
-      {required this.label,
-      required this.value,
-      required this.unit,
-      required this.valueText,
-      required this.color});
+  const _Bar({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.valueText,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -111,12 +234,18 @@ class _Bar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-            Text(valueText,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              valueText,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 4),
@@ -148,11 +277,18 @@ class _Stat extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
-        Text('$label：',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        Text(value,
-            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          '$label：',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Text(
+          value,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }

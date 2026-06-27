@@ -7,7 +7,8 @@ import 'package:gpu_monitor/services/ssh_config_parser.dart';
 void main() {
   group('NvidiaSmiParser', () {
     test('parses a typical multi-GPU CSV row set', () {
-      const csv = '0, NVIDIA GeForce RTX 4090, 35, 4230, 24564, 58, 215.5\n'
+      const csv =
+          '0, NVIDIA GeForce RTX 4090, 35, 4230, 24564, 58, 215.5\n'
           '1, NVIDIA GeForce RTX 4090, 0, 1024, 24564, 42, 45.0';
       final gpus = NvidiaSmiParser.parse(csv);
       expect(gpus.length, 2);
@@ -33,6 +34,97 @@ void main() {
       expect(gpus[0].temp, isNull);
       expect(gpus[0].memTotal, 15360);
       expect(gpus[0].memUtilPct, closeTo(0, 0.01));
+    });
+
+    test('joins GPU process, pmon, and ps details', () {
+      const output = '''
+__GPU__
+0, GPU-abc, NVIDIA GeForce RTX 4090, 35, 4230, 24564, 58, 215.5
+1, GPU-def, NVIDIA GeForce RTX 4090, 0, 1024, 24564, 42, 45.0
+__PROC__
+GPU-abc, 1234, python, 4096
+__PMON__
+# gpu        pid  type    sm   mem   enc   dec   command
+    0       1234     C    76    12     -     -   python
+__PS__
+ 1234 alice 01:02:03 python train.py --config exp.yaml
+''';
+
+      final gpus = NvidiaSmiParser.parse(output);
+
+      expect(gpus.length, 2);
+      expect(gpus[0].uuid, 'GPU-abc');
+      expect(gpus[0].processes.length, 1);
+      expect(gpus[0].processes.single.pid, 1234);
+      expect(gpus[0].processes.single.user, 'alice');
+      expect(gpus[0].processes.single.usedMemory, 4096);
+      expect(gpus[0].processes.single.smUtil, 76);
+      expect(gpus[0].processes.single.memUtil, 12);
+      expect(
+        gpus[0].processes.single.command,
+        'python train.py --config exp.yaml',
+      );
+      expect(gpus[1].processes, isEmpty);
+    });
+
+    test('keeps long process usernames intact', () {
+      const output = '''
+__GPU__
+0, GPU-abc, NVIDIA GeForce RTX 4090, 35, 4230, 24564, 58, 215.5
+__PROC__
+GPU-abc, 1234, python, 4096
+__PS__
+1234	zhourungui	01:02:03	python train.py
+''';
+
+      final gpus = NvidiaSmiParser.parse(output);
+
+      expect(gpus.single.processes.single.user, 'zhourungui');
+    });
+
+    test('parses Windows process owner and command details', () {
+      const output = '''
+__GPU__
+0, GPU-abc, NVIDIA GeForce RTX 4090, 35, 4230, 24564, 58, 215.5
+__PROC__
+GPU-abc, 1234, python.exe, 4096
+__PS__
+1234	LAB\\zhourungui	10:20:30	C:\\Python\\python.exe train.py
+''';
+
+      final gpus = NvidiaSmiParser.parse(output);
+
+      expect(gpus.single.processes.single.user, r'LAB\zhourungui');
+      expect(
+        gpus.single.processes.single.command,
+        r'C:\Python\python.exe train.py',
+      );
+    });
+
+    test('ignores unsupported pmon text in detailed output', () {
+      const output = '''
+__GPU__
+0, GPU-abc, NVIDIA GeForce RTX 4070 SUPER, 27, 1796, 12282, 51, 12.05
+__PROC__
+GPU-abc, 1880, C:\\Windows\\System32\\dwm.exe, [N/A]
+__PMON__
+The feature is not supported in this configuration
+Not supported on the device(s)
+Failed to process command line
+__PS__
+1880	DESKTOP\\user	01:02:03	C:\\Windows\\System32\\dwm.exe
+''';
+
+      final gpus = NvidiaSmiParser.parse(output);
+
+      expect(gpus.single.name, 'NVIDIA GeForce RTX 4070 SUPER');
+      expect(gpus.single.processes.single.pid, 1880);
+      expect(gpus.single.processes.single.smUtil, isNull);
+      expect(gpus.single.processes.single.memUtil, isNull);
+      expect(
+        gpus.single.processes.single.command,
+        r'C:\Windows\System32\dwm.exe',
+      );
     });
   });
 
@@ -67,8 +159,10 @@ Host gpu-box
       expect(hosts[0].address, '10.0.0.5'); // falls back to HostName
     });
 
-    test('skips wildcard host blocks but keeps their defaults for later hosts', () {
-      const cfg = '''
+    test(
+      'skips wildcard host blocks but keeps their defaults for later hosts',
+      () {
+        const cfg = '''
 Host *
   User default-user
   Port 2022
@@ -80,14 +174,18 @@ Host node-2
   HostName 10.0.0.2
   User override
 ''';
-      final hosts = SshConfigParser.parse(cfg);
-      // wildcard block should NOT produce a host entry
-      expect(hosts.length, 2);
-      expect(hosts[0].alias, 'node-1');
-      expect(hosts[0].user, 'default-user'); // inherited from wildcard defaults
-      expect(hosts[0].port, 2022);
-      expect(hosts[1].user, 'override');
-    });
+        final hosts = SshConfigParser.parse(cfg);
+        // wildcard block should NOT produce a host entry
+        expect(hosts.length, 2);
+        expect(hosts[0].alias, 'node-1');
+        expect(
+          hosts[0].user,
+          'default-user',
+        ); // inherited from wildcard defaults
+        expect(hosts[0].port, 2022);
+        expect(hosts[1].user, 'override');
+      },
+    );
 
     test('address falls back to alias when HostName absent', () {
       const cfg = 'Host shortname\n  User u\n';

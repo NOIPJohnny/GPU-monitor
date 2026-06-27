@@ -50,9 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: '设置',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           const SizedBox(width: 4),
         ],
@@ -68,8 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: monitor.isRefreshing ? null : () => monitor.refresh(),
         icon: monitor.isRefreshing
             ? const SizedBox(
-                width: 20, height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2))
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : const Icon(Icons.refresh),
         label: const Text('查询 GPU'),
       ),
@@ -91,24 +93,35 @@ class _HomeScreenState extends State<HomeScreen> {
         title: '所有主机已被排除',
         message: '在设置中重新启用至少一台主机即可查询。',
         actionLabel: '打开设置',
-        onAction: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SettingsScreen()),
-        ),
+        onAction: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
       );
     }
+    final showOverview = monitor.results.values.any(
+      (r) => r.status == QueryStatus.success,
+    );
     return RefreshIndicator(
       onRefresh: () => monitor.refresh(),
       child: ListView.builder(
-        itemCount: active.length,
+        itemCount: active.length + (showOverview ? 1 : 0),
         itemBuilder: (context, i) {
-          final host = active[i];
-          final result = monitor.results[host.alias] ??
+          if (showOverview && i == 0) {
+            return _OverviewPanel(results: monitor.results.values.toList());
+          }
+          final host = active[i - (showOverview ? 1 : 0)];
+          final result =
+              monitor.results[host.alias] ??
               HostQueryResult(
-                  alias: host.alias,
-                  status: QueryStatus.idle,
-                  fetchedAt: DateTime.now());
+                alias: host.alias,
+                status: QueryStatus.idle,
+                fetchedAt: DateTime.now(),
+              );
           return HostSection(
-              alias: host.alias, address: host.address, result: result);
+            alias: host.alias,
+            address: host.address,
+            result: result,
+          );
         },
       ),
     );
@@ -125,6 +138,175 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _OverviewPanel extends StatelessWidget {
+  final List<HostQueryResult> results;
+
+  const _OverviewPanel({required this.results});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final idleByHost = <String, List<int>>{};
+    final usageByUser = <String, _UserUsage>{};
+
+    for (final result in results.where(
+      (r) => r.status == QueryStatus.success,
+    )) {
+      for (final gpu in result.gpus) {
+        if (gpu.isLikelyIdle) {
+          idleByHost.putIfAbsent(result.alias, () => []).add(gpu.index);
+        }
+        for (final process in gpu.processes) {
+          final user = process.user ?? '未知用户';
+          final usage = usageByUser.putIfAbsent(user, () => _UserUsage(user));
+          usage.processCount++;
+          usage.memoryUsed += process.usedMemory ?? 0;
+          usage.gpus.add('${result.alias}:${gpu.index}');
+        }
+      }
+    }
+
+    final users = usageByUser.values.toList()
+      ..sort((a, b) => b.memoryUsed.compareTo(a.memoryUsed));
+    final idleHosts = idleByHost.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.dashboard_outlined,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '资源概览',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text('空闲 GPU', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            if (idleHosts.isEmpty)
+              Text(
+                '暂无空闲 GPU',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final entry in idleHosts)
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      avatar: const Icon(Icons.memory, size: 16),
+                      label: Text('${entry.key}：${entry.value.join('，')}'),
+                    ),
+                ],
+              ),
+            const SizedBox(height: 12),
+            Text('用户占用', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            if (users.isEmpty)
+              Text(
+                '暂无 GPU 进程',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            else
+              Column(
+                children: [
+                  for (final usage in users.take(6))
+                    _UserUsageRow(usage: usage),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UserUsageRow extends StatelessWidget {
+  final _UserUsage usage;
+
+  const _UserUsageRow({required this.usage});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              usage.user,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${usage.processCount} 进程',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(_fmtMiB(usage.memoryUsed), style: theme.textTheme.bodySmall),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              usage.gpus.take(4).join(', '),
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UserUsage {
+  final String user;
+  int processCount = 0;
+  int memoryUsed = 0;
+  final Set<String> gpus = {};
+
+  _UserUsage(this.user);
+}
+
+String _fmtMiB(int m) {
+  if (m >= 1024) return '${(m / 1024).toStringAsFixed(1)}GiB';
+  return '${m}MiB';
+}
+
 class _StatusBar extends StatelessWidget {
   const _StatusBar();
 
@@ -138,10 +320,16 @@ class _StatusBar extends StatelessWidget {
     final ok = results.where((r) => r.status == QueryStatus.success).length;
     final err = results.where((r) => r.status == QueryStatus.error).length;
     final noGpu = results.where((r) => r.status == QueryStatus.noGpu).length;
+    final idleGpu = results
+        .where((r) => r.status == QueryStatus.success)
+        .expand((r) => r.gpus)
+        .where((g) => g.isLikelyIdle)
+        .length;
 
     final last = monitor.lastRefreshedAt;
-    final lastText =
-        last == null ? '尚未刷新' : '上次刷新 ${DateFormat('HH:mm:ss').format(last)}';
+    final lastText = last == null
+        ? '尚未刷新'
+        : '上次刷新 ${DateFormat('HH:mm:ss').format(last)}';
 
     return Container(
       width: double.infinity,
@@ -152,21 +340,36 @@ class _StatusBar extends StatelessWidget {
         runSpacing: 4,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.access_time,
-                size: 16, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(width: 4),
-            Text(lastText, style: theme.textTheme.bodySmall),
-          ]),
-          if (settings.autoRefresh)
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.autorenew,
-                  size: 16, color: theme.colorScheme.primary),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.access_time,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 4),
-              Text('自动刷新 · ${settings.intervalSeconds}s',
-                  style: theme.textTheme.bodySmall),
-            ]),
+              Text(lastText, style: theme.textTheme.bodySmall),
+            ],
+          ),
+          if (settings.autoRefresh)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.autorenew,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '自动刷新 · ${settings.intervalSeconds}s',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
           _countChip(context, '在线', ok, Colors.green),
+          _countChip(context, '空闲 GPU', idleGpu, Colors.blue),
           _countChip(context, '错误', err, theme.colorScheme.error),
           _countChip(context, '无 GPU', noGpu, Colors.orange),
         ],
@@ -175,11 +378,14 @@ class _StatusBar extends StatelessWidget {
   }
 
   Widget _countChip(BuildContext context, String label, int n, Color color) {
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.circle, size: 8, color: color),
-      const SizedBox(width: 4),
-      Text('$label $n', style: Theme.of(context).textTheme.bodySmall),
-    ]);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.circle, size: 8, color: color),
+        const SizedBox(width: 4),
+        Text('$label $n', style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
   }
 }
 
@@ -190,7 +396,9 @@ class _AutoRefreshToggle extends StatelessWidget {
     return IconButton(
       icon: Icon(
         settings.autoRefresh ? Icons.sync : Icons.sync_disabled,
-        color: settings.autoRefresh ? Theme.of(context).colorScheme.primary : null,
+        color: settings.autoRefresh
+            ? Theme.of(context).colorScheme.primary
+            : null,
       ),
       tooltip: settings.autoRefresh
           ? '自动刷新中（${settings.intervalSeconds}s）'
