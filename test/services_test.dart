@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gpu_monitor/models/gpu_info.dart';
+import 'package:gpu_monitor/providers/settings_provider.dart';
 import 'package:gpu_monitor/services/nvidia_smi_parser.dart';
 import 'package:gpu_monitor/services/ssh_config_parser.dart';
 
@@ -136,6 +138,28 @@ __PS__
     test('is null when total is zero', () {
       const g = GpuInfo(index: 0, name: 'x', memUsed: 0, memTotal: 0);
       expect(g.memUtilPct, isNull);
+    });
+  });
+
+  group('SettingsProvider refresh interval', () {
+    test('allows 0.5 second interval and clamps lower values', () async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = SettingsProvider();
+
+      await settings.setInterval(0.5);
+      expect(settings.intervalSeconds, 0.5);
+
+      await settings.setInterval(0.1);
+      expect(settings.intervalSeconds, 0.5);
+    });
+
+    test('loads legacy integer interval values', () async {
+      SharedPreferences.setMockInitialValues({'ssh_gpu.refresh_interval': 1});
+      final settings = SettingsProvider();
+
+      await settings.load();
+
+      expect(settings.intervalSeconds, 1);
     });
   });
 

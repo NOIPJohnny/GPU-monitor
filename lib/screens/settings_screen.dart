@@ -41,8 +41,10 @@ class _HostListSection extends StatelessWidget {
         if (hosts.isEmpty)
           ListTile(
             dense: true,
-            title: Text('请先在 ~/.ssh/config 中添加 Host 后重启',
-                style: theme.textTheme.bodySmall),
+            title: Text(
+              '请先在 ~/.ssh/config 中添加 Host 后重启',
+              style: theme.textTheme.bodySmall,
+            ),
           ),
         for (final h in hosts)
           SwitchListTile(
@@ -50,8 +52,10 @@ class _HostListSection extends StatelessWidget {
             onChanged: (v) => settings.setExcluded(h.alias, !v),
             secondary: const Icon(Icons.computer),
             title: Text(h.alias),
-            subtitle: Text('${h.address}:${h.port}'
-                '${h.user == null ? "" : "  user=${h.user}"}'),
+            subtitle: Text(
+              '${h.address}:${h.port}'
+              '${h.user == null ? "" : "  user=${h.user}"}',
+            ),
           ),
       ],
     );
@@ -67,15 +71,19 @@ class _AutoRefreshSection extends StatefulWidget {
 
 class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
   late final TextEditingController _ctrl;
-  // Slider covers the common range (3–120s); the text field accepts the full
-  // 3–3600s range for users who want very long intervals.
-  static const int _sliderMax = 120;
+  // Slider covers the common range (0.5–120s); the text field accepts the full
+  // 0.5–3600s range for users who want very long intervals.
+  static const double _sliderMax = 120;
+  static const double _sliderStep = 0.5;
+  static const _quickIntervals = [0.5, 1.0, 2.0];
 
   @override
   void initState() {
     super.initState();
     final settings = context.read<SettingsProvider>();
-    _ctrl = TextEditingController(text: '${settings.intervalSeconds}');
+    _ctrl = TextEditingController(
+      text: SettingsProvider.formatInterval(settings.intervalSeconds),
+    );
   }
 
   @override
@@ -89,7 +97,7 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
     final settings = context.watch<SettingsProvider>();
     final theme = Theme.of(context);
     // Keep the field in sync when value changed via slider.
-    final shown = '${settings.intervalSeconds}';
+    final shown = SettingsProvider.formatInterval(settings.intervalSeconds);
     if (_ctrl.text != shown) {
       _ctrl.value = _ctrl.value.copyWith(
         text: shown,
@@ -103,7 +111,7 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
       children: [
         SwitchListTile(
           title: const Text('启用自动刷新'),
-          subtitle: Text('每隔 ${settings.intervalSeconds} 秒重复查询一次'),
+          subtitle: Text('每隔 $shown 秒重复查询一次'),
           value: settings.autoRefresh,
           onChanged: settings.setAutoRefresh,
         ),
@@ -111,7 +119,9 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
           leading: const Icon(Icons.timer),
           title: const Text('刷新间隔'),
           subtitle: Text(
-              '范围 ${SettingsProvider.minInterval}–${SettingsProvider.maxInterval} 秒'),
+            '范围 ${SettingsProvider.formatInterval(SettingsProvider.minInterval)}'
+            '–${SettingsProvider.formatInterval(SettingsProvider.maxInterval)} 秒',
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -119,22 +129,27 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
             children: [
               Expanded(
                 child: Slider(
-                  min: SettingsProvider.minInterval.toDouble(),
-                  max: _sliderMax.toDouble(),
-                  divisions: _sliderMax - SettingsProvider.minInterval,
+                  min: SettingsProvider.minInterval,
+                  max: _sliderMax,
+                  divisions:
+                      ((_sliderMax - SettingsProvider.minInterval) /
+                              _sliderStep)
+                          .round(),
                   value: settings.intervalSeconds
-                      .toDouble()
-                      .clamp(
-                          SettingsProvider.minInterval.toDouble(),
-                          _sliderMax.toDouble()),
-                  label: '${settings.intervalSeconds}s',
-                  onChanged: (v) => settings.setInterval(v.round()),
+                      .clamp(SettingsProvider.minInterval, _sliderMax)
+                      .toDouble(),
+                  label: '${shown}s',
+                  onChanged: (v) => settings.setInterval(
+                    (v / _sliderStep).round() * _sliderStep,
+                  ),
                 ),
               ),
               SizedBox(
                 width: 84,
                 child: TextField(
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     isDense: true,
                     suffixText: 's',
@@ -142,7 +157,7 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
                   ),
                   controller: _ctrl,
                   onSubmitted: (s) {
-                    final v = int.tryParse(s);
+                    final v = double.tryParse(s);
                     if (v != null) settings.setInterval(v);
                   },
                 ),
@@ -152,15 +167,30 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Wrap(
+            spacing: 8,
+            children: [
+              for (final interval in _quickIntervals)
+                ChoiceChip(
+                  label: Text('${SettingsProvider.formatInterval(interval)}s'),
+                  selected: settings.intervalSeconds == interval,
+                  onSelected: (_) => settings.setInterval(interval),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
-              '提示：滑块上限 ${_sliderMax}s，输入框可填到 ${SettingsProvider.maxInterval}s。',
-              style: theme.textTheme.bodySmall),
+            '提示：滑块上限 ${SettingsProvider.formatInterval(_sliderMax)}s，'
+            '输入框可填到 ${SettingsProvider.formatInterval(SettingsProvider.maxInterval)}s。',
+            style: theme.textTheme.bodySmall,
+          ),
         ),
       ],
     );
   }
 }
-
 
 class _AppearanceSection extends StatelessWidget {
   const _AppearanceSection();

@@ -21,6 +21,9 @@ class GpuMonitorProvider extends ChangeNotifier {
   bool _isRefreshing = false;
   bool get isRefreshing => _isRefreshing;
 
+  bool _isShowingManualRefresh = false;
+  bool get isShowingManualRefresh => _isShowingManualRefresh;
+
   DateTime? _lastRefreshedAt;
   DateTime? get lastRefreshedAt => _lastRefreshedAt;
 
@@ -39,8 +42,10 @@ class GpuMonitorProvider extends ChangeNotifier {
   }
 
   Future<String?> _handleCredential(
-      CredentialKind kind, SshHost host,
-      {String? reason}) async {
+    CredentialKind kind,
+    SshHost host, {
+    String? reason,
+  }) async {
     final cb = onCredentialProvider;
     if (cb == null) return null;
     return cb(kind, host, reason: reason);
@@ -48,16 +53,19 @@ class GpuMonitorProvider extends ChangeNotifier {
 
   /// Trigger an immediate refresh. Safe to call concurrently: the second call
   /// is dropped while one is in flight.
-  Future<void> refresh() async {
+  Future<void> refresh({bool showLoading = true}) async {
     if (_isRefreshing) return;
     final hosts = _settings.activeHosts;
     _isRefreshing = true;
-    for (final h in hosts) {
-      _results[h.alias] = HostQueryResult.loading(h.alias);
-    }
+    _isShowingManualRefresh = showLoading;
     // Drop results for hosts no longer active.
     final activeAliases = hosts.map((h) => h.alias).toSet();
     _results.removeWhere((k, _) => !activeAliases.contains(k));
+    for (final h in hosts) {
+      if (showLoading || !_results.containsKey(h.alias)) {
+        _results[h.alias] = HostQueryResult.loading(h.alias);
+      }
+    }
     notifyListeners();
 
     try {
@@ -67,6 +75,7 @@ class GpuMonitorProvider extends ChangeNotifier {
         ..addAll(fresh);
     } finally {
       _isRefreshing = false;
+      _isShowingManualRefresh = false;
       _lastRefreshedAt = DateTime.now();
       notifyListeners();
     }
@@ -82,11 +91,13 @@ class GpuMonitorProvider extends ChangeNotifier {
   }
 
   void _armTimer() {
-    final want = Duration(seconds: _settings.intervalSeconds);
+    final want = Duration(
+      milliseconds: (_settings.intervalSeconds * 1000).round(),
+    );
     if (_timer?.isActive == true && _armedInterval == want) return;
     _armedInterval = want;
     _timer?.cancel();
-    _timer = Timer.periodic(want, (_) => refresh());
+    _timer = Timer.periodic(want, (_) => refresh(showLoading: false));
   }
 
   void _disarmTimer() {

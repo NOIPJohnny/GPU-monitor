@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: monitor.isRefreshing ? null : () => monitor.refresh(),
-        icon: monitor.isRefreshing
+        icon: monitor.isShowingManualRefresh
             ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -330,6 +330,9 @@ class _StatusBar extends StatelessWidget {
     final lastText = last == null
         ? '尚未刷新'
         : '上次刷新 ${DateFormat('HH:mm:ss').format(last)}';
+    final intervalText = SettingsProvider.formatInterval(
+      settings.intervalSeconds,
+    );
 
     return Container(
       width: double.infinity,
@@ -363,7 +366,7 @@ class _StatusBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '自动刷新 · ${settings.intervalSeconds}s',
+                  '自动刷新 · ${intervalText}s',
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -401,7 +404,7 @@ class _AutoRefreshToggle extends StatelessWidget {
             : null,
       ),
       tooltip: settings.autoRefresh
-          ? '自动刷新中（${settings.intervalSeconds}s）'
+          ? '自动刷新中（${SettingsProvider.formatInterval(settings.intervalSeconds)}s）'
           : '自动刷新已关闭',
       onPressed: () => settings.setAutoRefresh(!settings.autoRefresh),
     );

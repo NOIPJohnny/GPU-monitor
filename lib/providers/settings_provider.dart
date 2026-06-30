@@ -14,22 +14,23 @@ class SettingsProvider extends ChangeNotifier {
   static const _kInterval = 'ssh_gpu.refresh_interval';
   static const _kAutoRefresh = 'ssh_gpu.auto_refresh';
 
-  static const int minInterval = 3;
-  static const int maxInterval = 3600;
+  static const double minInterval = 0.5;
+  static const double maxInterval = 3600;
 
   List<SshHost> _allHosts = const [];
   Set<String> _excluded = {};
-  int _intervalSeconds = 10;
+  double _intervalSeconds = 10;
   bool _autoRefresh = false;
 
   List<SshHost> get allHosts => List.unmodifiable(_allHosts);
   Set<String> get excludedHosts => Set.unmodifiable(_excluded);
-  int get intervalSeconds => _intervalSeconds;
+  double get intervalSeconds => _intervalSeconds;
   bool get autoRefresh => _autoRefresh;
 
   /// Hosts that are NOT excluded — i.e. what should be queried.
-  List<SshHost> get activeHosts =>
-      _allHosts.where((h) => !_excluded.contains(h.alias)).toList(growable: false);
+  List<SshHost> get activeHosts => _allHosts
+      .where((h) => !_excluded.contains(h.alias))
+      .toList(growable: false);
 
   bool isExcluded(String alias) => _excluded.contains(alias);
   bool isActive(String alias) => !_excluded.contains(alias);
@@ -41,7 +42,8 @@ class SettingsProvider extends ChangeNotifier {
     if (raw != null) {
       _excluded = (jsonDecode(raw) as List).cast<String>().toSet();
     }
-    _intervalSeconds = prefs.getInt(_kInterval) ?? 10;
+    final rawInterval = prefs.get(_kInterval);
+    _intervalSeconds = rawInterval is num ? rawInterval.toDouble() : 10;
     if (_intervalSeconds < minInterval) _intervalSeconds = minInterval;
     if (_intervalSeconds > maxInterval) _intervalSeconds = maxInterval;
     _autoRefresh = prefs.getBool(_kAutoRefresh) ?? false;
@@ -58,8 +60,8 @@ class SettingsProvider extends ChangeNotifier {
     await _persist();
   }
 
-  Future<void> setInterval(int seconds) async {
-    seconds = seconds.clamp(minInterval, maxInterval);
+  Future<void> setInterval(double seconds) async {
+    seconds = seconds.clamp(minInterval, maxInterval).toDouble();
     if (seconds == _intervalSeconds) return;
     _intervalSeconds = seconds;
     notifyListeners();
@@ -76,7 +78,12 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kExcluded, jsonEncode(_excluded.toList()));
-    await prefs.setInt(_kInterval, _intervalSeconds);
+    await prefs.setDouble(_kInterval, _intervalSeconds);
     await prefs.setBool(_kAutoRefresh, _autoRefresh);
+  }
+
+  static String formatInterval(double seconds) {
+    if (seconds == seconds.roundToDouble()) return seconds.toInt().toString();
+    return seconds.toStringAsFixed(1);
   }
 }
