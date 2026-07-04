@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/host_query_result.dart';
 
 /// Small colored label showing one host's query status.
@@ -9,7 +10,11 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, fg) = _style(status, Theme.of(context).colorScheme);
+    final (label, fg) = _style(
+      status,
+      Theme.of(context).colorScheme,
+      AppLocalizations.of(context)!,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -24,11 +29,12 @@ class StatusChip extends StatelessWidget {
     );
   }
 
-  (String, Color) _style(QueryStatus s, ColorScheme c) => switch (s) {
-        QueryStatus.loading => ('查询中', c.primary),
-        QueryStatus.success => ('在线', Colors.green),
-        QueryStatus.error => ('错误', c.error),
-        QueryStatus.noGpu => ('无 GPU', Colors.orange),
-        QueryStatus.idle => ('待查询', c.outline),
+  (String, Color) _style(QueryStatus s, ColorScheme c, AppLocalizations l10n) =>
+      switch (s) {
+        QueryStatus.loading => (l10n.statusLoading, c.primary),
+        QueryStatus.success => (l10n.statusOnline, Colors.green),
+        QueryStatus.error => (l10n.statusError, c.error),
+        QueryStatus.noGpu => (l10n.statusNoGpu, Colors.orange),
+        QueryStatus.idle => (l10n.statusIdle, c.outline),
       };
 }

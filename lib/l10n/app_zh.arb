@@ -1,0 +1,156 @@
+{
+  "@@locale": "zh",
+  "appTitle": "SSH GPU 监控",
+  "toggleThemeTooltip": "切换主题",
+  "settingsTooltip": "设置",
+  "queryGpuButton": "查询 GPU",
+  "noHostsTitle": "未在 ~/.ssh/config 中找到任何 Host",
+  "noHostsMessage": "请在你的 SSH 配置中加入至少一个 Host 条目后重启本程序。",
+  "allHostsExcludedTitle": "所有主机已被排除",
+  "allHostsExcludedMessage": "在设置中重新启用至少一台主机即可查询。",
+  "openSettings": "打开设置",
+  "unknownUser": "未知用户",
+  "resourceOverview": "资源概览",
+  "idleGpu": "空闲 GPU",
+  "noIdleGpu": "暂无空闲 GPU",
+  "userUsage": "用户占用",
+  "noGpuProcesses": "暂无 GPU 进程",
+  "processCount": "{count} 进程",
+  "@processCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "neverRefreshed": "尚未刷新",
+  "lastRefreshed": "上次刷新 {time}",
+  "@lastRefreshed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "autoRefreshStatus": "自动刷新 · {interval}s",
+  "@autoRefreshStatus": {
+    "placeholders": {
+      "interval": {
+        "type": "String"
+      }
+    }
+  },
+  "online": "在线",
+  "error": "错误",
+  "noGpu": "无 GPU",
+  "autoRefreshEnabledTooltip": "自动刷新中（{interval}s）",
+  "@autoRefreshEnabledTooltip": {
+    "placeholders": {
+      "interval": {
+        "type": "String"
+      }
+    }
+  },
+  "autoRefreshDisabledTooltip": "自动刷新已关闭",
+  "statusLoading": "查询中",
+  "statusOnline": "在线",
+  "statusError": "错误",
+  "statusNoGpu": "无 GPU",
+  "statusIdle": "待查询",
+  "privateKeyPassphraseTitle": "私钥 Passphrase",
+  "sshPasswordTitle": "SSH 密码",
+  "hostLabel": "主机：{alias}",
+  "@hostLabel": {
+    "placeholders": {
+      "alias": {
+        "type": "String"
+      }
+    }
+  },
+  "passwordLabel": "密码",
+  "passphraseHint": "输入私钥的 passphrase",
+  "passwordHint": "输入登录密码",
+  "cancel": "取消",
+  "confirm": "确定",
+  "unknownError": "未知错误",
+  "noGpuOrDriver": "未检测到 GPU 或未安装 NVIDIA 驱动",
+  "notQueriedYet": "尚未查询，点击右上角刷新按钮",
+  "gpuUtilization": "GPU 利用率",
+  "gpuMemory": "显存",
+  "temperature": "温度",
+  "power": "功耗",
+  "processCountWithMemory": "{count} 个进程 · {memory}",
+  "@processCountWithMemory": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "memory": {
+        "type": "String"
+      }
+    }
+  },
+  "runningElapsed": "运行 {elapsed}",
+  "@runningElapsed": {
+    "placeholders": {
+      "elapsed": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTitle": "设置",
+  "hostsSectionTitle": "主机（{enabled}/{total} 启用）",
+  "@hostsSectionTitle": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "noHostInConfig": "未在 ~/.ssh/config 中找到 Host",
+  "hostExcludeHint": "关闭即排除该主机，不参与查询",
+  "addHostThenRestart": "请先在 ~/.ssh/config 中添加 Host 后重启",
+  "autoRefreshTitle": "自动刷新",
+  "enableAutoRefresh": "启用自动刷新",
+  "autoRefreshSubtitle": "每隔 {interval} 秒重复查询一次",
+  "@autoRefreshSubtitle": {
+    "placeholders": {
+      "interval": {
+        "type": "String"
+      }
+    }
+  },
+  "refreshInterval": "刷新间隔",
+  "refreshIntervalRange": "范围 {min}-{max} 秒",
+  "@refreshIntervalRange": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "autoRefreshTip": "提示：滑块上限 {sliderMax}s，输入框可填到 {max}s。",
+  "@autoRefreshTip": {
+    "placeholders": {
+      "sliderMax": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "appearance": "外观",
+  "themeSystem": "跟随系统",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "languageSystem": "跟随系统语言",
+  "languageChinese": "中文",
+  "languageEnglish": "English"
+}

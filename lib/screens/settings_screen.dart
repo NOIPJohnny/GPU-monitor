@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/settings_provider.dart';
 import '../providers/theme_provider.dart';
 
@@ -9,8 +10,9 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: const [
           _HostListSection(),
@@ -29,20 +31,23 @@ class _HostListSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final hosts = settings.allHosts;
     return ExpansionTile(
       initiallyExpanded: true,
-      title: Text('主机（${settings.activeHosts.length}/${hosts.length} 启用）'),
+      title: Text(
+        l10n.hostsSectionTitle(settings.activeHosts.length, hosts.length),
+      ),
       subtitle: hosts.isEmpty
-          ? const Text('未在 ~/.ssh/config 中找到 Host')
-          : Text('关闭即排除该主机，不参与查询'),
+          ? Text(l10n.noHostInConfig)
+          : Text(l10n.hostExcludeHint),
       leading: const Icon(Icons.dns),
       children: [
         if (hosts.isEmpty)
           ListTile(
             dense: true,
             title: Text(
-              '请先在 ~/.ssh/config 中添加 Host 后重启',
+              l10n.addHostThenRestart,
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -96,6 +101,7 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     // Keep the field in sync when value changed via slider.
     final shown = SettingsProvider.formatInterval(settings.intervalSeconds);
     if (_ctrl.text != shown) {
@@ -106,21 +112,23 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
     }
     return ExpansionTile(
       initiallyExpanded: true,
-      title: const Text('自动刷新'),
+      title: Text(l10n.autoRefreshTitle),
       leading: const Icon(Icons.sync),
       children: [
         SwitchListTile(
-          title: const Text('启用自动刷新'),
-          subtitle: Text('每隔 $shown 秒重复查询一次'),
+          title: Text(l10n.enableAutoRefresh),
+          subtitle: Text(l10n.autoRefreshSubtitle(shown)),
           value: settings.autoRefresh,
           onChanged: settings.setAutoRefresh,
         ),
         ListTile(
           leading: const Icon(Icons.timer),
-          title: const Text('刷新间隔'),
+          title: Text(l10n.refreshInterval),
           subtitle: Text(
-            '范围 ${SettingsProvider.formatInterval(SettingsProvider.minInterval)}'
-            '–${SettingsProvider.formatInterval(SettingsProvider.maxInterval)} 秒',
+            l10n.refreshIntervalRange(
+              SettingsProvider.formatInterval(SettingsProvider.minInterval),
+              SettingsProvider.formatInterval(SettingsProvider.maxInterval),
+            ),
           ),
         ),
         Padding(
@@ -182,8 +190,10 @@ class _AutoRefreshSectionState extends State<_AutoRefreshSection> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
-            '提示：滑块上限 ${SettingsProvider.formatInterval(_sliderMax)}s，'
-            '输入框可填到 ${SettingsProvider.formatInterval(SettingsProvider.maxInterval)}s。',
+            l10n.autoRefreshTip(
+              SettingsProvider.formatInterval(_sliderMax),
+              SettingsProvider.formatInterval(SettingsProvider.maxInterval),
+            ),
             style: theme.textTheme.bodySmall,
           ),
         ),
@@ -198,28 +208,54 @@ class _AppearanceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
+    final l10n = AppLocalizations.of(context)!;
     return ExpansionTile(
       initiallyExpanded: true,
-      title: const Text('外观'),
+      title: Text(l10n.appearance),
       leading: const Icon(Icons.palette),
       children: [
-        RadioListTile<ThemeMode>(
-          title: const Text('跟随系统'),
-          value: ThemeMode.system,
+        RadioGroup<ThemeMode>(
           groupValue: theme.themeMode,
           onChanged: (v) => v == null ? null : theme.setThemeMode(v),
+          child: Column(
+            children: [
+              RadioListTile<ThemeMode>(
+                title: Text(l10n.themeSystem),
+                value: ThemeMode.system,
+              ),
+              RadioListTile<ThemeMode>(
+                title: Text(l10n.themeLight),
+                value: ThemeMode.light,
+              ),
+              RadioListTile<ThemeMode>(
+                title: Text(l10n.themeDark),
+                value: ThemeMode.dark,
+              ),
+            ],
+          ),
         ),
-        RadioListTile<ThemeMode>(
-          title: const Text('浅色'),
-          value: ThemeMode.light,
-          groupValue: theme.themeMode,
-          onChanged: (v) => v == null ? null : theme.setThemeMode(v),
-        ),
-        RadioListTile<ThemeMode>(
-          title: const Text('深色'),
-          value: ThemeMode.dark,
-          groupValue: theme.themeMode,
-          onChanged: (v) => v == null ? null : theme.setThemeMode(v),
+        const Divider(height: 1),
+        RadioGroup<AppLanguage>(
+          groupValue: context.watch<SettingsProvider>().language,
+          onChanged: (v) => v == null
+              ? null
+              : context.read<SettingsProvider>().setLanguage(v),
+          child: Column(
+            children: [
+              RadioListTile<AppLanguage>(
+                title: Text(l10n.languageSystem),
+                value: AppLanguage.system,
+              ),
+              RadioListTile<AppLanguage>(
+                title: Text(l10n.languageChinese),
+                value: AppLanguage.zh,
+              ),
+              RadioListTile<AppLanguage>(
+                title: Text(l10n.languageEnglish),
+                value: AppLanguage.en,
+              ),
+            ],
+          ),
         ),
       ],
     );

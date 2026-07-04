@@ -1,0 +1,156 @@
+{
+  "@@locale": "en",
+  "appTitle": "SSH GPU Monitor",
+  "toggleThemeTooltip": "Switch theme",
+  "settingsTooltip": "Settings",
+  "queryGpuButton": "Query GPU",
+  "noHostsTitle": "No Host entries found in ~/.ssh/config",
+  "noHostsMessage": "Add at least one Host entry to your SSH config, then restart this app.",
+  "allHostsExcludedTitle": "All hosts are excluded",
+  "allHostsExcludedMessage": "Re-enable at least one host in Settings to query it.",
+  "openSettings": "Open Settings",
+  "unknownUser": "Unknown user",
+  "resourceOverview": "Resource overview",
+  "idleGpu": "Idle GPU",
+  "noIdleGpu": "No idle GPU",
+  "userUsage": "User usage",
+  "noGpuProcesses": "No GPU processes",
+  "processCount": "{count, plural, =1{1 process} other{{count} processes}}",
+  "@processCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "neverRefreshed": "Never refreshed",
+  "lastRefreshed": "Last refresh {time}",
+  "@lastRefreshed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "autoRefreshStatus": "Auto refresh · {interval}s",
+  "@autoRefreshStatus": {
+    "placeholders": {
+      "interval": {
+        "type": "String"
+      }
+    }
+  },
+  "online": "Online",
+  "error": "Error",
+  "noGpu": "No GPU",
+  "autoRefreshEnabledTooltip": "Auto refresh on ({interval}s)",
+  "@autoRefreshEnabledTooltip": {
+    "placeholders": {
+      "interval": {
+        "type": "String"
+      }
+    }
+  },
+  "autoRefreshDisabledTooltip": "Auto refresh off",
+  "statusLoading": "Querying",
+  "statusOnline": "Online",
+  "statusError": "Error",
+  "statusNoGpu": "No GPU",
+  "statusIdle": "Idle",
+  "privateKeyPassphraseTitle": "Private key passphrase",
+  "sshPasswordTitle": "SSH password",
+  "hostLabel": "Host: {alias}",
+  "@hostLabel": {
+    "placeholders": {
+      "alias": {
+        "type": "String"
+      }
+    }
+  },
+  "passwordLabel": "Password",
+  "passphraseHint": "Enter the private key passphrase",
+  "passwordHint": "Enter the login password",
+  "cancel": "Cancel",
+  "confirm": "OK",
+  "unknownError": "Unknown error",
+  "noGpuOrDriver": "No GPU detected, or NVIDIA driver is not installed",
+  "notQueriedYet": "Not queried yet. Click the refresh button.",
+  "gpuUtilization": "GPU utilization",
+  "gpuMemory": "Memory",
+  "temperature": "Temperature",
+  "power": "Power",
+  "processCountWithMemory": "{count, plural, =1{1 process} other{{count} processes}} · {memory}",
+  "@processCountWithMemory": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "memory": {
+        "type": "String"
+      }
+    }
+  },
+  "runningElapsed": "Running {elapsed}",
+  "@runningElapsed": {
+    "placeholders": {
+      "elapsed": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTitle": "Settings",
+  "hostsSectionTitle": "Hosts ({enabled}/{total} enabled)",
+  "@hostsSectionTitle": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "noHostInConfig": "No Host entries found in ~/.ssh/config",
+  "hostExcludeHint": "Turn off a host to exclude it from queries",
+  "addHostThenRestart": "Add a Host entry to ~/.ssh/config, then restart",
+  "autoRefreshTitle": "Auto refresh",
+  "enableAutoRefresh": "Enable auto refresh",
+  "autoRefreshSubtitle": "Query again every {interval} seconds",
+  "@autoRefreshSubtitle": {
+    "placeholders": {
+      "interval": {
+        "type": "String"
+      }
+    }
+  },
+  "refreshInterval": "Refresh interval",
+  "refreshIntervalRange": "Range {min}-{max} seconds",
+  "@refreshIntervalRange": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "autoRefreshTip": "Tip: the slider goes up to {sliderMax}s; the input accepts up to {max}s.",
+  "@autoRefreshTip": {
+    "placeholders": {
+      "sliderMax": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "appearance": "Appearance",
+  "themeSystem": "Use system setting",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "languageSystem": "Use system language",
+  "languageChinese": "中文",
+  "languageEnglish": "English"
+}

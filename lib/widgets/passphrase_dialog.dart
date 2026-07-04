@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/ssh_host.dart';
 import '../services/ssh_executor.dart';
 
@@ -22,8 +23,11 @@ class _CredentialDialog extends StatefulWidget {
   final CredentialKind kind;
   final SshHost host;
   final String? reason;
-  const _CredentialDialog(
-      {required this.kind, required this.host, this.reason});
+  const _CredentialDialog({
+    required this.kind,
+    required this.host,
+    this.reason,
+  });
 
   @override
   State<_CredentialDialog> createState() => _CredentialDialogState();
@@ -41,7 +45,10 @@ class _CredentialDialogState extends State<_CredentialDialog> {
   @override
   Widget build(BuildContext context) {
     final isPass = widget.kind == CredentialKind.passphrase;
-    final title = isPass ? '私钥 Passphrase' : 'SSH 密码';
+    final l10n = AppLocalizations.of(context)!;
+    final title = isPass
+        ? l10n.privateKeyPassphraseTitle
+        : l10n.sshPasswordTitle;
     return AlertDialog(
       icon: const Icon(Icons.lock_outline),
       title: Text(title),
@@ -49,11 +56,10 @@ class _CredentialDialogState extends State<_CredentialDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('主机：${widget.host.alias}'),
+          Text(l10n.hostLabel(widget.host.alias)),
           if (widget.reason != null) ...[
             const SizedBox(height: 4),
-            Text(widget.reason!,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(widget.reason!, style: Theme.of(context).textTheme.bodySmall),
           ],
           const SizedBox(height: 12),
           TextField(
@@ -62,8 +68,8 @@ class _CredentialDialogState extends State<_CredentialDialog> {
             autofocus: true,
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
-              labelText: isPass ? 'Passphrase' : '密码',
-              hintText: isPass ? '输入私钥的 passphrase' : '输入登录密码',
+              labelText: isPass ? 'Passphrase' : l10n.passwordLabel,
+              hintText: isPass ? l10n.passphraseHint : l10n.passwordHint,
             ),
             onSubmitted: (v) => Navigator.of(context).pop(v),
           ),
@@ -72,11 +78,11 @@ class _CredentialDialogState extends State<_CredentialDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
+          child: Text(l10n.confirm),
         ),
       ],
     );

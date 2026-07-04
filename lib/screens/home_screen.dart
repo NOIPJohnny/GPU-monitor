@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/host_query_result.dart';
 import '../models/ssh_host.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/gpu_monitor_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/theme_provider.dart';
@@ -37,19 +38,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final monitor = context.watch<GpuMonitorProvider>();
     final settings = context.watch<SettingsProvider>();
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SSH GPU 监控'),
+        title: Text(l10n.appTitle),
         actions: [
           _AutoRefreshToggle(),
           IconButton(
             icon: const Icon(Icons.brightness_6),
-            tooltip: '切换主题',
+            tooltip: l10n.toggleThemeTooltip,
             onPressed: () => _cycleTheme(context),
           ),
           IconButton(
             icon: const Icon(Icons.settings),
-            tooltip: '设置',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
@@ -73,26 +75,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.refresh),
-        label: const Text('查询 GPU'),
+        label: Text(l10n.queryGpuButton),
       ),
     );
   }
 
   Widget _body(GpuMonitorProvider monitor, SettingsProvider settings) {
+    final l10n = AppLocalizations.of(context)!;
     if (settings.allHosts.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.dns_outlined,
-        title: '未在 ~/.ssh/config 中找到任何 Host',
-        message: '请在你的 SSH 配置中加入至少一个 Host 条目后重启本程序。',
+        title: l10n.noHostsTitle,
+        message: l10n.noHostsMessage,
       );
     }
     final active = settings.activeHosts;
     if (active.isEmpty) {
       return EmptyState(
         icon: Icons.filter_alt_off_outlined,
-        title: '所有主机已被排除',
-        message: '在设置中重新启用至少一台主机即可查询。',
-        actionLabel: '打开设置',
+        title: l10n.allHostsExcludedTitle,
+        message: l10n.allHostsExcludedMessage,
+        actionLabel: l10n.openSettings,
         onAction: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
@@ -146,6 +149,7 @@ class _OverviewPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final idleByHost = <String, List<int>>{};
     final usageByUser = <String, _UserUsage>{};
 
@@ -157,7 +161,7 @@ class _OverviewPanel extends StatelessWidget {
           idleByHost.putIfAbsent(result.alias, () => []).add(gpu.index);
         }
         for (final process in gpu.processes) {
-          final user = process.user ?? '未知用户';
+          final user = process.user ?? l10n.unknownUser;
           final usage = usageByUser.putIfAbsent(user, () => _UserUsage(user));
           usage.processCount++;
           usage.memoryUsed += process.usedMemory ?? 0;
@@ -193,7 +197,7 @@ class _OverviewPanel extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '资源概览',
+                  l10n.resourceOverview,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -201,11 +205,11 @@ class _OverviewPanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text('空闲 GPU', style: theme.textTheme.labelLarge),
+            Text(l10n.idleGpu, style: theme.textTheme.labelLarge),
             const SizedBox(height: 6),
             if (idleHosts.isEmpty)
               Text(
-                '暂无空闲 GPU',
+                l10n.noIdleGpu,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -219,16 +223,16 @@ class _OverviewPanel extends StatelessWidget {
                     Chip(
                       visualDensity: VisualDensity.compact,
                       avatar: const Icon(Icons.memory, size: 16),
-                      label: Text('${entry.key}：${entry.value.join('，')}'),
+                      label: Text('${entry.key}: ${entry.value.join(', ')}'),
                     ),
                 ],
               ),
             const SizedBox(height: 12),
-            Text('用户占用', style: theme.textTheme.labelLarge),
+            Text(l10n.userUsage, style: theme.textTheme.labelLarge),
             const SizedBox(height: 6),
             if (users.isEmpty)
               Text(
-                '暂无 GPU 进程',
+                l10n.noGpuProcesses,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -255,6 +259,7 @@ class _UserUsageRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -270,7 +275,7 @@ class _UserUsageRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${usage.processCount} 进程',
+            l10n.processCount(usage.processCount),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -315,6 +320,7 @@ class _StatusBar extends StatelessWidget {
     final monitor = context.watch<GpuMonitorProvider>();
     final settings = context.watch<SettingsProvider>();
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final results = monitor.results.values.toList();
     final ok = results.where((r) => r.status == QueryStatus.success).length;
@@ -328,8 +334,8 @@ class _StatusBar extends StatelessWidget {
 
     final last = monitor.lastRefreshedAt;
     final lastText = last == null
-        ? '尚未刷新'
-        : '上次刷新 ${DateFormat('HH:mm:ss').format(last)}';
+        ? l10n.neverRefreshed
+        : l10n.lastRefreshed(DateFormat('HH:mm:ss').format(last));
     final intervalText = SettingsProvider.formatInterval(
       settings.intervalSeconds,
     );
@@ -366,15 +372,15 @@ class _StatusBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '自动刷新 · ${intervalText}s',
+                  l10n.autoRefreshStatus(intervalText),
                   style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
-          _countChip(context, '在线', ok, Colors.green),
-          _countChip(context, '空闲 GPU', idleGpu, Colors.blue),
-          _countChip(context, '错误', err, theme.colorScheme.error),
-          _countChip(context, '无 GPU', noGpu, Colors.orange),
+          _countChip(context, l10n.online, ok, Colors.green),
+          _countChip(context, l10n.idleGpu, idleGpu, Colors.blue),
+          _countChip(context, l10n.error, err, theme.colorScheme.error),
+          _countChip(context, l10n.noGpu, noGpu, Colors.orange),
         ],
       ),
     );
@@ -396,6 +402,7 @@ class _AutoRefreshToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+    final l10n = AppLocalizations.of(context)!;
     return IconButton(
       icon: Icon(
         settings.autoRefresh ? Icons.sync : Icons.sync_disabled,
@@ -404,8 +411,10 @@ class _AutoRefreshToggle extends StatelessWidget {
             : null,
       ),
       tooltip: settings.autoRefresh
-          ? '自动刷新中（${SettingsProvider.formatInterval(settings.intervalSeconds)}s）'
-          : '自动刷新已关闭',
+          ? l10n.autoRefreshEnabledTooltip(
+              SettingsProvider.formatInterval(settings.intervalSeconds),
+            )
+          : l10n.autoRefreshDisabledTooltip,
       onPressed: () => settings.setAutoRefresh(!settings.autoRefresh),
     );
   }

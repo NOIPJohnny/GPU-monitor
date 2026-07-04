@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/host_query_result.dart';
 import 'gpu_card.dart';
 import 'status_chip.dart';
@@ -33,13 +34,19 @@ class HostSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(alias,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      alias,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     if (address != null && address != alias)
-                      Text(address!,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        address!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -54,6 +61,7 @@ class HostSection extends StatelessWidget {
   }
 
   Widget _body(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (result.status) {
       case QueryStatus.loading:
         return const Padding(
@@ -73,12 +81,26 @@ class HostSection extends StatelessWidget {
           }).toList(),
         );
       case QueryStatus.error:
-        return _msg(context, Icons.error_outline, result.errorMessage ?? '未知错误',
-            Theme.of(context).colorScheme.error);
+        return _msg(
+          context,
+          Icons.error_outline,
+          result.errorMessage ?? l10n.unknownError,
+          Theme.of(context).colorScheme.error,
+        );
       case QueryStatus.noGpu:
-        return _msg(context, Icons.info_outline, '未检测到 GPU 或未安装 NVIDIA 驱动', Colors.orange);
+        return _msg(
+          context,
+          Icons.info_outline,
+          l10n.noGpuOrDriver,
+          Colors.orange,
+        );
       case QueryStatus.idle:
-        return _msg(context, Icons.hourglass_empty, '尚未查询，点击右上角刷新按钮', Colors.grey);
+        return _msg(
+          context,
+          Icons.hourglass_empty,
+          l10n.notQueriedYet,
+          Colors.grey,
+        );
     }
   }
 
@@ -94,7 +116,9 @@ class HostSection extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 18),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: TextStyle(color: color))),
+          Expanded(
+            child: Text(text, style: TextStyle(color: color)),
+          ),
         ],
       ),
     );

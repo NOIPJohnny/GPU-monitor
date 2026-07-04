@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/gpu_info.dart';
 import '../models/gpu_process_info.dart';
 
@@ -11,6 +12,7 @@ class GpuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -43,7 +45,7 @@ class GpuCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _Bar(
-              label: 'GPU 利用率',
+              label: l10n.gpuUtilization,
               value: gpu.gpuUtil?.toDouble(),
               unit: '%',
               valueText: gpu.gpuUtil != null ? '${gpu.gpuUtil}%' : 'N/A',
@@ -51,7 +53,7 @@ class GpuCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             _Bar(
-              label: '显存',
+              label: l10n.gpuMemory,
               value: gpu.memUtilPct,
               unit: '%',
               valueText: gpu.memTotal != null
@@ -64,13 +66,13 @@ class GpuCard extends StatelessWidget {
               children: [
                 _Stat(
                   icon: Icons.thermostat,
-                  label: '温度',
+                  label: l10n.temperature,
                   value: gpu.temp != null ? '${gpu.temp}°C' : 'N/A',
                 ),
                 const SizedBox(width: 16),
                 _Stat(
                   icon: Icons.bolt,
-                  label: '功耗',
+                  label: l10n.power,
                   value: gpu.powerDraw != null
                       ? '${gpu.powerDraw!.toStringAsFixed(1)}W'
                       : 'N/A',
@@ -108,6 +110,7 @@ class _ProcessDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     if (gpu.processes.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 10),
@@ -120,7 +123,7 @@ class _ProcessDetails extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              '无 GPU 进程',
+              l10n.noGpuProcesses,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -137,7 +140,10 @@ class _ProcessDetails extends StatelessWidget {
         childrenPadding: EdgeInsets.zero,
         dense: true,
         title: Text(
-          '${gpu.processes.length} 个进程 · ${GpuCard._fmtMiB(gpu.processMemoryUsed)}',
+          l10n.processCountWithMemory(
+            gpu.processes.length,
+            GpuCard._fmtMiB(gpu.processMemoryUsed),
+          ),
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -160,6 +166,7 @@ class _ProcessRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final command = process.command ?? process.name;
     final detailStyle = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -197,7 +204,7 @@ class _ProcessRow extends StatelessWidget {
               Text('PID ${process.pid}', style: detailStyle),
               if (process.user != null) Text(process.user!, style: detailStyle),
               if (process.elapsed != null)
-                Text('运行 ${process.elapsed}', style: detailStyle),
+                Text(l10n.runningElapsed(process.elapsed!), style: detailStyle),
               Text('SM ${_fmtPct(process.smUtil)}', style: detailStyle),
               Text('MEM ${_fmtPct(process.memUtil)}', style: detailStyle),
             ],
