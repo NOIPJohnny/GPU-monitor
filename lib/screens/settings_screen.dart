@@ -16,6 +16,7 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         children: const [
           _HostListSection(),
+          _MetricsSection(),
           _AutoRefreshSection(),
           _AppearanceSection(),
         ],
@@ -62,6 +63,29 @@ class _HostListSection extends StatelessWidget {
               '${h.user == null ? "" : "  user=${h.user}"}',
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _MetricsSection extends StatelessWidget {
+  const _MetricsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    return ExpansionTile(
+      initiallyExpanded: true,
+      title: Text(l10n.metricsSectionTitle),
+      leading: const Icon(Icons.monitor_heart_outlined),
+      children: [
+        SwitchListTile(
+          title: Text(l10n.showCpuMetrics),
+          subtitle: Text(l10n.showCpuMetricsSubtitle),
+          value: settings.showCpuMetrics,
+          onChanged: settings.setShowCpuMetrics,
+        ),
       ],
     );
   }

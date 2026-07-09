@@ -75,7 +75,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.refresh),
-        label: Text(l10n.queryGpuButton),
+        label: Text(
+          settings.showCpuMetrics
+              ? l10n.queryGpuCpuButton
+              : l10n.queryGpuButton,
+        ),
       ),
     );
   }
@@ -124,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
             alias: host.alias,
             address: host.address,
             result: result,
+            showCpuMetrics: settings.showCpuMetrics,
           );
         },
       ),

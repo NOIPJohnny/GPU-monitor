@@ -2,9 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gpu_monitor/models/gpu_info.dart';
+import 'package:gpu_monitor/models/host_query_result.dart';
+import 'package:gpu_monitor/models/ssh_host.dart';
 import 'package:gpu_monitor/providers/settings_provider.dart';
+import 'package:gpu_monitor/services/cpu_info_parser.dart';
+import 'package:gpu_monitor/services/gpu_query_service.dart';
 import 'package:gpu_monitor/services/nvidia_smi_parser.dart';
 import 'package:gpu_monitor/services/ssh_config_parser.dart';
+import 'package:gpu_monitor/services/ssh_executor.dart';
 
 void main() {
   group('NvidiaSmiParser', () {
@@ -130,6 +135,128 @@ __PS__
     });
   });
 
+  group('CpuInfoParser', () {
+    test('parses Linux CPU summary and top processes', () {
+      const output =
+          '__CPU__\n'
+          'platform=linux\n'
+          'usage_pct=37.5\n'
+          'mem_used_mib=12000\n'
+          'mem_total_mib=64000\n'
+          'logical_cores=32\n'
+          'load_avg_1=1.23\n'
+          'load_avg_5=2.34\n'
+          'load_avg_15=3.45\n'
+          '__CPUPROC__\n'
+          '1234\talice\t88.5\t2.1\t2048\t01:02:03\tpython train.py\n';
+
+      final cpu = CpuInfoParser.parse(output);
+
+      expect(cpu, isNotNull);
+      expect(cpu!.cpuUtil, 37.5);
+      expect(cpu.memoryUsed, 12000);
+      expect(cpu.memoryTotal, 64000);
+      expect(cpu.memoryUtilPct, closeTo(18.75, 0.01));
+      expect(cpu.logicalCores, 32);
+      expect(cpu.usedCores, closeTo(12, 0.01));
+      expect(cpu.loadAvg1, 1.23);
+      expect(cpu.processes.single.pid, 1234);
+      expect(cpu.processes.single.user, 'alice');
+      expect(cpu.processes.single.cpuUtil, 88.5);
+      expect(cpu.processes.single.memoryUtil, 2.1);
+      expect(cpu.processes.single.residentMemory, 2048);
+      expect(cpu.processes.single.command, 'python train.py');
+    });
+
+    test('parses Windows CPU summary and process command details', () {
+      const output =
+          '__CPU__\n'
+          'platform=windows\n'
+          'usage_pct=12.5\n'
+          'mem_used_mib=4096\n'
+          'mem_total_mib=16384\n'
+          'logical_cores=16\n'
+          '__CPUPROC__\n'
+          '4321\tLAB\\alice\t18.5\t3.1\t512\t10:20:30\t'
+          'C:\\Python\\python.exe train.py\n';
+
+      final cpu = CpuInfoParser.parse(output);
+
+      expect(cpu, isNotNull);
+      expect(cpu!.cpuUtil, 12.5);
+      expect(cpu.logicalCores, 16);
+      expect(cpu.processes.single.user, r'LAB\alice');
+      expect(cpu.processes.single.command, r'C:\Python\python.exe train.py');
+      expect(cpu.processes.single.name, 'python.exe');
+    });
+  });
+
+  group('GpuQueryService CPU monitoring', () {
+    const host = SshHost(alias: 'node-1');
+
+    test('returns GPU and CPU data when CPU monitoring is enabled', () async {
+      const output = '''
+__GPU__
+0, GPU-abc, NVIDIA GeForce RTX 4090, 35, 4230, 24564, 58, 215.5
+__CPU__
+usage_pct=24.0
+mem_used_mib=8000
+mem_total_mib=32000
+logical_cores=16
+__CPUPROC__
+1234	alice	50.0	2.0	1024	00:10:00	python train.py
+''';
+      final executor = _FakeSshExecutor(output);
+      final service = GpuQueryService(executor);
+
+      final results = await service.queryAll([host], includeCpu: true);
+      final result = results[host.alias]!;
+
+      expect(executor.lastIncludeCpu, isTrue);
+      expect(result.status, QueryStatus.success);
+      expect(result.gpus.single.uuid, 'GPU-abc');
+      expect(result.cpu?.cpuUtil, 24.0);
+    });
+
+    test('keeps CPU data on a host without GPU', () async {
+      const output = '''
+__CPU__
+usage_pct=10.0
+mem_used_mib=4096
+mem_total_mib=8192
+logical_cores=8
+__CPUPROC__
+''';
+      final executor = _FakeSshExecutor(output);
+      final service = GpuQueryService(executor);
+
+      final results = await service.queryAll([host], includeCpu: true);
+      final result = results[host.alias]!;
+
+      expect(result.status, QueryStatus.noGpu);
+      expect(result.gpus, isEmpty);
+      expect(result.cpu?.memoryTotal, 8192);
+    });
+
+    test('does not parse or request CPU data when disabled', () async {
+      const output = '''
+__GPU__
+0, GPU-abc, NVIDIA GeForce RTX 4090, 35, 4230, 24564, 58, 215.5
+__CPU__
+usage_pct=24.0
+''';
+      final executor = _FakeSshExecutor(output);
+      final service = GpuQueryService(executor);
+
+      final results = await service.queryAll([host]);
+      final result = results[host.alias]!;
+
+      expect(executor.lastIncludeCpu, isFalse);
+      expect(result.status, QueryStatus.success);
+      expect(result.cpu, isNull);
+    });
+  });
+
   group('GpuInfo.memUtilPct', () {
     test('is null when total unknown', () {
       const g = GpuInfo(index: 0, name: 'x', memUsed: 100);
@@ -160,6 +287,21 @@ __PS__
       await settings.load();
 
       expect(settings.intervalSeconds, 1);
+    });
+
+    test('defaults CPU metrics to off and persists changes', () async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = SettingsProvider();
+
+      await settings.load();
+      expect(settings.showCpuMetrics, isFalse);
+
+      await settings.setShowCpuMetrics(true);
+      expect(settings.showCpuMetrics, isTrue);
+
+      final reloaded = SettingsProvider();
+      await reloaded.load();
+      expect(reloaded.showCpuMetrics, isTrue);
     });
   });
 
@@ -235,4 +377,17 @@ Host foo   # trailing comment
       expect(SshConfigParser.parse(''), isEmpty);
     });
   });
+}
+
+class _FakeSshExecutor extends SshExecutor {
+  final String output;
+  bool? lastIncludeCpu;
+
+  _FakeSshExecutor(this.output);
+
+  @override
+  Future<String> queryGpu(SshHost host, {bool includeCpu = false}) async {
+    lastIncludeCpu = includeCpu;
+    return output;
+  }
 }

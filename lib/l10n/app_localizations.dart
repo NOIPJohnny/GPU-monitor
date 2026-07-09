@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'Query GPU'**
   String get queryGpuButton;
 
+  /// No description provided for @queryGpuCpuButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Query GPU/CPU'**
+  String get queryGpuCpuButton;
+
   /// No description provided for @noHostsTitle.
   ///
   /// In en, this message translates to:
@@ -344,11 +350,47 @@ abstract class AppLocalizations {
   /// **'GPU utilization'**
   String get gpuUtilization;
 
+  /// No description provided for @cpuPerformance.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU performance'**
+  String get cpuPerformance;
+
+  /// No description provided for @cpuUtilization.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU utilization'**
+  String get cpuUtilization;
+
   /// No description provided for @gpuMemory.
   ///
   /// In en, this message translates to:
   /// **'Memory'**
   String get gpuMemory;
+
+  /// No description provided for @systemMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'System memory'**
+  String get systemMemory;
+
+  /// No description provided for @logicalCores.
+  ///
+  /// In en, this message translates to:
+  /// **'Logical cores'**
+  String get logicalCores;
+
+  /// No description provided for @cpuUsedCores.
+  ///
+  /// In en, this message translates to:
+  /// **'Used cores'**
+  String get cpuUsedCores;
+
+  /// No description provided for @loadAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Load average'**
+  String get loadAverage;
 
   /// No description provided for @temperature.
   ///
@@ -361,6 +403,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Power'**
   String get power;
+
+  /// No description provided for @noCpuProcesses.
+  ///
+  /// In en, this message translates to:
+  /// **'No CPU process data'**
+  String get noCpuProcesses;
+
+  /// No description provided for @cpuProcessCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 CPU process} other{{count} CPU processes}}'**
+  String cpuProcessCount(int count);
 
   /// No description provided for @processCountWithMemory.
   ///
@@ -403,6 +457,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a Host entry to ~/.ssh/config, then restart'**
   String get addHostThenRestart;
+
+  /// No description provided for @metricsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Metrics'**
+  String get metricsSectionTitle;
+
+  /// No description provided for @showCpuMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Show CPU metrics'**
+  String get showCpuMetrics;
+
+  /// No description provided for @showCpuMetricsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Query CPU usage, memory, and top CPU processes'**
+  String get showCpuMetricsSubtitle;
 
   /// No description provided for @autoRefreshTitle.
   ///

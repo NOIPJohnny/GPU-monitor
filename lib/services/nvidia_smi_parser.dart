@@ -8,6 +8,9 @@ import '../models/gpu_process_info.dart';
 class NvidiaSmiParser {
   static List<GpuInfo> parse(String output) {
     if (output.contains('__GPU__')) return _parseDetailed(output);
+    if (output.contains('__CPU__') || output.contains('__CPUPROC__')) {
+      return const [];
+    }
     return _parseGpuRows(output);
   }
 

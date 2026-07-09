@@ -4,6 +4,7 @@
   "toggleThemeTooltip": "Switch theme",
   "settingsTooltip": "Settings",
   "queryGpuButton": "Query GPU",
+  "queryGpuCpuButton": "Query GPU/CPU",
   "noHostsTitle": "No Host entries found in ~/.ssh/config",
   "noHostsMessage": "Add at least one Host entry to your SSH config, then restart this app.",
   "allHostsExcludedTitle": "All hosts are excluded",
@@ -76,9 +77,24 @@
   "noGpuOrDriver": "No GPU detected, or NVIDIA driver is not installed",
   "notQueriedYet": "Not queried yet. Click the refresh button.",
   "gpuUtilization": "GPU utilization",
+  "cpuPerformance": "CPU performance",
+  "cpuUtilization": "CPU utilization",
   "gpuMemory": "Memory",
+  "systemMemory": "System memory",
+  "logicalCores": "Logical cores",
+  "cpuUsedCores": "Used cores",
+  "loadAverage": "Load average",
   "temperature": "Temperature",
   "power": "Power",
+  "noCpuProcesses": "No CPU process data",
+  "cpuProcessCount": "{count, plural, =1{1 CPU process} other{{count} CPU processes}}",
+  "@cpuProcessCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "processCountWithMemory": "{count, plural, =1{1 process} other{{count} processes}} · {memory}",
   "@processCountWithMemory": {
     "placeholders": {
@@ -113,6 +129,9 @@
   "noHostInConfig": "No Host entries found in ~/.ssh/config",
   "hostExcludeHint": "Turn off a host to exclude it from queries",
   "addHostThenRestart": "Add a Host entry to ~/.ssh/config, then restart",
+  "metricsSectionTitle": "Metrics",
+  "showCpuMetrics": "Show CPU metrics",
+  "showCpuMetricsSubtitle": "Query CPU usage, memory, and top CPU processes",
   "autoRefreshTitle": "Auto refresh",
   "enableAutoRefresh": "Enable auto refresh",
   "autoRefreshSubtitle": "Query again every {interval} seconds",

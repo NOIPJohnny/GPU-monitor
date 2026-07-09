@@ -21,6 +21,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get queryGpuButton => '查询 GPU';
 
   @override
+  String get queryGpuCpuButton => '查询 GPU/CPU';
+
+  @override
   String get noHostsTitle => '未在 ~/.ssh/config 中找到任何 Host';
 
   @override
@@ -142,13 +145,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gpuUtilization => 'GPU 利用率';
 
   @override
+  String get cpuPerformance => 'CPU 性能';
+
+  @override
+  String get cpuUtilization => 'CPU 利用率';
+
+  @override
   String get gpuMemory => '显存';
+
+  @override
+  String get systemMemory => '系统内存';
+
+  @override
+  String get logicalCores => '逻辑核心';
+
+  @override
+  String get cpuUsedCores => '占用核心';
+
+  @override
+  String get loadAverage => '负载';
 
   @override
   String get temperature => '温度';
 
   @override
   String get power => '功耗';
+
+  @override
+  String get noCpuProcesses => '暂无 CPU 进程数据';
+
+  @override
+  String cpuProcessCount(int count) {
+    return '$count 个 CPU 进程';
+  }
 
   @override
   String processCountWithMemory(int count, String memory) {
@@ -176,6 +205,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addHostThenRestart => '请先在 ~/.ssh/config 中添加 Host 后重启';
+
+  @override
+  String get metricsSectionTitle => '监控指标';
+
+  @override
+  String get showCpuMetrics => '显示 CPU 指标';
+
+  @override
+  String get showCpuMetricsSubtitle => '查询 CPU 利用率、内存和 CPU 占用最高的进程';
 
   @override
   String get autoRefreshTitle => '自动刷新';

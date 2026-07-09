@@ -33,6 +33,7 @@ class GpuMonitorProvider extends ChangeNotifier {
 
   Timer? _timer;
   Duration? _armedInterval;
+  bool _queuedAutoRefresh = false;
 
   GpuMonitorProvider(this._settings) {
     _executor = SshExecutor(onCredential: _handleCredential);
@@ -51,10 +52,13 @@ class GpuMonitorProvider extends ChangeNotifier {
     return cb(kind, host, reason: reason);
   }
 
-  /// Trigger an immediate refresh. Safe to call concurrently: the second call
-  /// is dropped while one is in flight.
+  /// Trigger an immediate refresh. Concurrent manual calls are ignored; one
+  /// automatic tick can be queued while a refresh is in flight.
   Future<void> refresh({bool showLoading = true}) async {
-    if (_isRefreshing) return;
+    if (_isRefreshing) {
+      if (!showLoading) _queuedAutoRefresh = true;
+      return;
+    }
     final hosts = _settings.activeHosts;
     _isRefreshing = true;
     _isShowingManualRefresh = showLoading;
@@ -69,7 +73,10 @@ class GpuMonitorProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final fresh = await _service.queryAll(hosts);
+      final fresh = await _service.queryAll(
+        hosts,
+        includeCpu: _settings.showCpuMetrics,
+      );
       _results
         ..clear()
         ..addAll(fresh);
@@ -78,10 +85,24 @@ class GpuMonitorProvider extends ChangeNotifier {
       _isShowingManualRefresh = false;
       _lastRefreshedAt = DateTime.now();
       notifyListeners();
+      if (_queuedAutoRefresh && _settings.autoRefresh) {
+        _queuedAutoRefresh = false;
+        unawaited(refresh(showLoading: false));
+      }
     }
   }
 
   void _onSettingsChanged() {
+    if (!_settings.showCpuMetrics) {
+      var changed = false;
+      _results.updateAll((_, result) {
+        if (result.cpu == null) return result;
+        changed = true;
+        return result.withoutCpu();
+      });
+      if (changed) notifyListeners();
+    }
+
     // Re-arm timer if interval or auto-refresh changed.
     if (_settings.autoRefresh) {
       _armTimer();
@@ -103,6 +124,7 @@ class GpuMonitorProvider extends ChangeNotifier {
   void _disarmTimer() {
     _timer?.cancel();
     _timer = null;
+    _queuedAutoRefresh = false;
   }
 
   @override

@@ -4,6 +4,7 @@
   "toggleThemeTooltip": "切换主题",
   "settingsTooltip": "设置",
   "queryGpuButton": "查询 GPU",
+  "queryGpuCpuButton": "查询 GPU/CPU",
   "noHostsTitle": "未在 ~/.ssh/config 中找到任何 Host",
   "noHostsMessage": "请在你的 SSH 配置中加入至少一个 Host 条目后重启本程序。",
   "allHostsExcludedTitle": "所有主机已被排除",
@@ -76,9 +77,24 @@
   "noGpuOrDriver": "未检测到 GPU 或未安装 NVIDIA 驱动",
   "notQueriedYet": "尚未查询，点击右上角刷新按钮",
   "gpuUtilization": "GPU 利用率",
+  "cpuPerformance": "CPU 性能",
+  "cpuUtilization": "CPU 利用率",
   "gpuMemory": "显存",
+  "systemMemory": "系统内存",
+  "logicalCores": "逻辑核心",
+  "cpuUsedCores": "占用核心",
+  "loadAverage": "负载",
   "temperature": "温度",
   "power": "功耗",
+  "noCpuProcesses": "暂无 CPU 进程数据",
+  "cpuProcessCount": "{count} 个 CPU 进程",
+  "@cpuProcessCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "processCountWithMemory": "{count} 个进程 · {memory}",
   "@processCountWithMemory": {
     "placeholders": {
@@ -113,6 +129,9 @@
   "noHostInConfig": "未在 ~/.ssh/config 中找到 Host",
   "hostExcludeHint": "关闭即排除该主机，不参与查询",
   "addHostThenRestart": "请先在 ~/.ssh/config 中添加 Host 后重启",
+  "metricsSectionTitle": "监控指标",
+  "showCpuMetrics": "显示 CPU 指标",
+  "showCpuMetricsSubtitle": "查询 CPU 利用率、内存和 CPU 占用最高的进程",
   "autoRefreshTitle": "自动刷新",
   "enableAutoRefresh": "启用自动刷新",
   "autoRefreshSubtitle": "每隔 {interval} 秒重复查询一次",

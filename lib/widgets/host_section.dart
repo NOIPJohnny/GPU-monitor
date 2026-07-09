@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/cpu_info.dart';
+import '../models/gpu_info.dart';
 import '../models/host_query_result.dart';
+import 'cpu_card.dart';
 import 'gpu_card.dart';
 import 'status_chip.dart';
 
@@ -11,11 +14,13 @@ class HostSection extends StatelessWidget {
   final String alias;
   final String? address;
   final HostQueryResult result;
+  final bool showCpuMetrics;
   const HostSection({
     super.key,
     required this.alias,
     this.address,
     required this.result,
+    this.showCpuMetrics = false,
   });
 
   @override
@@ -69,17 +74,11 @@ class HostSection extends StatelessWidget {
           child: Center(child: CircularProgressIndicator()),
         );
       case QueryStatus.success:
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: result.gpus.map((g) {
-            // Responsive-ish: fixed max width so 2–3 cards fit per row on desktop.
-            return ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: GpuCard(g),
-            );
-          }).toList(),
-        );
+        final cards = <Widget>[
+          if (showCpuMetrics && result.cpu != null) _cpuCard(result.cpu!),
+          for (final gpu in result.gpus) _gpuCard(gpu),
+        ];
+        return Wrap(spacing: 12, runSpacing: 12, children: cards);
       case QueryStatus.error:
         return _msg(
           context,
@@ -88,6 +87,25 @@ class HostSection extends StatelessWidget {
           Theme.of(context).colorScheme.error,
         );
       case QueryStatus.noGpu:
+        if (showCpuMetrics && result.cpu != null) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [_cpuCard(result.cpu!)],
+              ),
+              const SizedBox(height: 8),
+              _msg(
+                context,
+                Icons.info_outline,
+                l10n.noGpuOrDriver,
+                Colors.orange,
+              ),
+            ],
+          );
+        }
         return _msg(
           context,
           Icons.info_outline,
@@ -102,6 +120,22 @@ class HostSection extends StatelessWidget {
           Colors.grey,
         );
     }
+  }
+
+  Widget _cpuCard(CpuInfo cpu) {
+    // Responsive-ish: fixed max width so 2–3 cards fit per row on desktop.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 360),
+      child: CpuCard(cpu),
+    );
+  }
+
+  Widget _gpuCard(GpuInfo gpu) {
+    // Responsive-ish: fixed max width so 2–3 cards fit per row on desktop.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 360),
+      child: GpuCard(gpu),
+    );
   }
 
   Widget _msg(BuildContext context, IconData icon, String text, Color color) {

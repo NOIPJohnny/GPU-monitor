@@ -21,12 +21,13 @@ enum AppLanguage {
 
 /// Holds user preferences and the list of hosts discovered in ~/.ssh/config.
 /// Persisted via SharedPreferences: excluded aliases, refresh interval,
-/// auto-refresh toggle.
+/// auto-refresh toggle, CPU monitoring toggle.
 class SettingsProvider extends ChangeNotifier {
   static const _kExcluded = 'ssh_gpu.excluded_hosts';
   static const _kInterval = 'ssh_gpu.refresh_interval';
   static const _kAutoRefresh = 'ssh_gpu.auto_refresh';
   static const _kLanguage = 'ssh_gpu.language';
+  static const _kShowCpuMetrics = 'ssh_gpu.show_cpu_metrics';
 
   static const double minInterval = 0.5;
   static const double maxInterval = 3600;
@@ -35,12 +36,14 @@ class SettingsProvider extends ChangeNotifier {
   Set<String> _excluded = {};
   double _intervalSeconds = 10;
   bool _autoRefresh = false;
+  bool _showCpuMetrics = false;
   AppLanguage _language = AppLanguage.system;
 
   List<SshHost> get allHosts => List.unmodifiable(_allHosts);
   Set<String> get excludedHosts => Set.unmodifiable(_excluded);
   double get intervalSeconds => _intervalSeconds;
   bool get autoRefresh => _autoRefresh;
+  bool get showCpuMetrics => _showCpuMetrics;
   AppLanguage get language => _language;
   Locale? get locale => _language.locale;
 
@@ -64,6 +67,7 @@ class SettingsProvider extends ChangeNotifier {
     if (_intervalSeconds < minInterval) _intervalSeconds = minInterval;
     if (_intervalSeconds > maxInterval) _intervalSeconds = maxInterval;
     _autoRefresh = prefs.getBool(_kAutoRefresh) ?? false;
+    _showCpuMetrics = prefs.getBool(_kShowCpuMetrics) ?? false;
     _language = switch (prefs.getString(_kLanguage)) {
       'zh' => AppLanguage.zh,
       'en' => AppLanguage.en,
@@ -97,6 +101,13 @@ class SettingsProvider extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> setShowCpuMetrics(bool enabled) async {
+    if (enabled == _showCpuMetrics) return;
+    _showCpuMetrics = enabled;
+    notifyListeners();
+    await _persist();
+  }
+
   Future<void> setLanguage(AppLanguage language) async {
     if (language == _language) return;
     _language = language;
@@ -109,6 +120,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString(_kExcluded, jsonEncode(_excluded.toList()));
     await prefs.setDouble(_kInterval, _intervalSeconds);
     await prefs.setBool(_kAutoRefresh, _autoRefresh);
+    await prefs.setBool(_kShowCpuMetrics, _showCpuMetrics);
     await prefs.setString(_kLanguage, _language.name);
   }
 

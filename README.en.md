@@ -13,5 +13,7 @@ A small Flutter desktop app for querying GPU status across multiple machines ove
 - Shows query results by host, with separate states for online, no GPU, error, and loading.
 - Expands process details at the bottom of each GPU card, including PID, user, memory usage, elapsed time, and command line.
 - Shows per-process SM / MEM utilization on supported Linux hosts; environments without `pmon` support degrade to `N/A`.
-- Aggregates idle GPUs by machine and GPU usage by user in the resource overview.
+- Optional CPU monitoring can be enabled in Settings, showing CPU utilization, used cores, system memory, logical cores, and load by host.
+- CPU cards expand to show the top CPU-consuming processes, including PID, user, CPU / MEM usage, memory, elapsed time, and command line.
+- Aggregates idle GPUs by machine and GPU usage by user in the resource overview. CPU data is shown only inside each host section and is not added to the resource overview.
 - Supports host selection, manual refresh, auto-refresh interval, light/dark themes, and language switching between English and Chinese.

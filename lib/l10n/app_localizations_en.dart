@@ -21,6 +21,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queryGpuButton => 'Query GPU';
 
   @override
+  String get queryGpuCpuButton => 'Query GPU/CPU';
+
+  @override
   String get noHostsTitle => 'No Host entries found in ~/.ssh/config';
 
   @override
@@ -151,13 +154,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gpuUtilization => 'GPU utilization';
 
   @override
+  String get cpuPerformance => 'CPU performance';
+
+  @override
+  String get cpuUtilization => 'CPU utilization';
+
+  @override
   String get gpuMemory => 'Memory';
+
+  @override
+  String get systemMemory => 'System memory';
+
+  @override
+  String get logicalCores => 'Logical cores';
+
+  @override
+  String get cpuUsedCores => 'Used cores';
+
+  @override
+  String get loadAverage => 'Load average';
 
   @override
   String get temperature => 'Temperature';
 
   @override
   String get power => 'Power';
+
+  @override
+  String get noCpuProcesses => 'No CPU process data';
+
+  @override
+  String cpuProcessCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count CPU processes',
+      one: '1 CPU process',
+    );
+    return '$_temp0';
+  }
 
   @override
   String processCountWithMemory(int count, String memory) {
@@ -192,6 +227,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addHostThenRestart =>
       'Add a Host entry to ~/.ssh/config, then restart';
+
+  @override
+  String get metricsSectionTitle => 'Metrics';
+
+  @override
+  String get showCpuMetrics => 'Show CPU metrics';
+
+  @override
+  String get showCpuMetricsSubtitle =>
+      'Query CPU usage, memory, and top CPU processes';
 
   @override
   String get autoRefreshTitle => 'Auto refresh';
