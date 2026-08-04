@@ -170,7 +170,9 @@ class _OverviewPanel extends StatelessWidget {
           final usage = usageByUser.putIfAbsent(user, () => _UserUsage(user));
           usage.processCount++;
           usage.memoryUsed += process.usedMemory ?? 0;
-          usage.gpus.add('${result.alias}:${gpu.index}');
+          usage.gpuIndicesByHost
+              .putIfAbsent(result.alias, () => <int>{})
+              .add(gpu.index);
         }
       }
     }
@@ -290,8 +292,7 @@ class _UserUsageRow extends StatelessWidget {
           const SizedBox(width: 8),
           Flexible(
             child: Text(
-              usage.gpus.take(4).join(', '),
-              overflow: TextOverflow.ellipsis,
+              usage.gpuSummary,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -307,9 +308,22 @@ class _UserUsage {
   final String user;
   int processCount = 0;
   int memoryUsed = 0;
-  final Set<String> gpus = {};
+  final Map<String, Set<int>> gpuIndicesByHost = {};
 
   _UserUsage(this.user);
+
+  String get gpuSummary => formatGpuGroups(gpuIndicesByHost);
+}
+
+String formatGpuGroups(Map<String, Set<int>> groups) {
+  final entries = groups.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+  return entries
+      .map((entry) {
+        final indices = entry.value.toList()..sort();
+        return '${entry.key}:${indices.join(',')}';
+      })
+      .join(', ');
 }
 
 String _fmtMiB(int m) {
