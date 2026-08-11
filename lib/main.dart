@@ -6,6 +6,7 @@ import 'app.dart';
 import 'providers/gpu_monitor_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/theme_provider.dart';
+import 'services/desktop_lifecycle_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,13 +16,19 @@ Future<void> main() async {
   final settings = SettingsProvider();
   final theme = ThemeProvider();
   await Future.wait([settings.load(), theme.load()]);
+  final desktopLifecycleController = DesktopLifecycleController(settings);
+  await desktopLifecycleController.initialize();
 
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider.value(value: settings),
-      ChangeNotifierProvider.value(value: theme),
-      ChangeNotifierProvider(create: (_) => GpuMonitorProvider(settings)),
-    ],
-    child: const SshGpuMonitorApp(),
-  ));
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: settings),
+        ChangeNotifierProvider.value(value: theme),
+        ChangeNotifierProvider(create: (_) => GpuMonitorProvider(settings)),
+      ],
+      child: SshGpuMonitorApp(
+        onHideToBackground: desktopLifecycleController.hideToBackground,
+      ),
+    ),
+  );
 }

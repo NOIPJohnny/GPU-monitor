@@ -303,6 +303,20 @@ usage_pct=24.0
       await reloaded.load();
       expect(reloaded.showCpuMetrics, isTrue);
     });
+
+    test('defaults background running to off and persists changes', () async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = SettingsProvider();
+
+      await settings.load();
+      expect(settings.closeToBackground, isFalse);
+
+      await settings.setCloseToBackground(true);
+      final reloaded = SettingsProvider();
+      await reloaded.load();
+
+      expect(reloaded.closeToBackground, isTrue);
+    });
   });
 
   group('SshConfigParser', () {

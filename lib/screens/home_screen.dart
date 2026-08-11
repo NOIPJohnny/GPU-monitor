@@ -129,6 +129,9 @@ class _HomeScreenState extends State<HomeScreen> {
             address: host.address,
             result: result,
             showCpuMetrics: settings.showCpuMetrics,
+            alertEnabled: settings.isHostAlertEnabled(host.alias),
+            alertPaused: !settings.autoRefresh,
+            alertDelivery: monitor.alertDeliveries[host.alias],
           );
         },
       ),

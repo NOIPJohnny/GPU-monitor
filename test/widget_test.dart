@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,5 +35,32 @@ void main() {
     await tester.pump();
     expect(find.text('SSH GPU 监控'), findsOneWidget);
     expect(find.text('未在 ~/.ssh/config 中找到任何 Host'), findsOneWidget);
+  });
+
+  testWidgets('Ctrl+W and Command+W invoke background hiding', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final settings = SettingsProvider();
+    final theme = ThemeProvider();
+    var hideCount = 0;
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: settings),
+          ChangeNotifierProvider.value(value: theme),
+          ChangeNotifierProvider(create: (_) => GpuMonitorProvider(settings)),
+        ],
+        child: SshGpuMonitorApp(onHideToBackground: () async => hideCount++),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyW);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyW);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+
+    expect(hideCount, 2);
   });
 }

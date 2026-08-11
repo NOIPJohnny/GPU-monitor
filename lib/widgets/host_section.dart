@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../models/cpu_info.dart';
 import '../models/gpu_info.dart';
 import '../models/host_query_result.dart';
+import '../services/alert_delivery_queue.dart';
 import 'cpu_card.dart';
 import 'gpu_card.dart';
 import 'status_chip.dart';
@@ -15,12 +16,18 @@ class HostSection extends StatelessWidget {
   final String? address;
   final HostQueryResult result;
   final bool showCpuMetrics;
+  final bool alertEnabled;
+  final bool alertPaused;
+  final HostAlertDelivery? alertDelivery;
   const HostSection({
     super.key,
     required this.alias,
     this.address,
     required this.result,
     this.showCpuMetrics = false,
+    this.alertEnabled = false,
+    this.alertPaused = false,
+    this.alertDelivery,
   });
 
   @override
@@ -55,6 +62,10 @@ class HostSection extends StatelessWidget {
                   ],
                 ),
               ),
+              if (alertEnabled) ...[
+                _alertStatus(context),
+                const SizedBox(width: 8),
+              ],
               StatusChip(result.status),
             ],
           ),
@@ -62,6 +73,43 @@ class HostSection extends StatelessWidget {
           _body(context),
         ],
       ),
+    );
+  }
+
+  Widget _alertStatus(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (alertPaused) {
+      return Tooltip(
+        message: l10n.alertPausedTooltip,
+        child: const Icon(Icons.notifications_paused_outlined, size: 20),
+      );
+    }
+    final delivery = alertDelivery;
+    final (icon, color, tooltip) = switch (delivery?.status) {
+      HostAlertDeliveryStatus.sending => (
+        Icons.outgoing_mail,
+        Colors.blue,
+        l10n.alertSendingTooltip,
+      ),
+      HostAlertDeliveryStatus.sent => (
+        Icons.notifications_active,
+        Colors.green,
+        l10n.alertSentTooltip,
+      ),
+      HostAlertDeliveryStatus.error => (
+        Icons.notification_important_outlined,
+        Theme.of(context).colorScheme.error,
+        l10n.alertErrorTooltip(delivery?.message ?? l10n.unknownError),
+      ),
+      _ => (
+        Icons.notifications_active_outlined,
+        Theme.of(context).colorScheme.primary,
+        l10n.alertArmedTooltip,
+      ),
+    };
+    return Tooltip(
+      message: tooltip,
+      child: Icon(icon, size: 20, color: color),
     );
   }
 

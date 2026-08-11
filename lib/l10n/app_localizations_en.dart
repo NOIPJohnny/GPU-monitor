@@ -239,6 +239,160 @@ class AppLocalizationsEn extends AppLocalizations {
       'Query CPU usage, memory, and top CPU processes';
 
   @override
+  String get emailNotificationsTitle => 'Availability alerts';
+
+  @override
+  String get emailNotificationsSubtitle =>
+      'Windows/macOS system notifications and one SMTP account for all hosts';
+
+  @override
+  String get smtpHost => 'SMTP server';
+
+  @override
+  String get smtpPort => 'Port';
+
+  @override
+  String get smtpSecurity => 'Encryption';
+
+  @override
+  String get smtpStartTls => 'STARTTLS';
+
+  @override
+  String get smtpImplicitTls => 'Implicit TLS';
+
+  @override
+  String get smtpUsername => 'SMTP username';
+
+  @override
+  String get smtpPassword => 'App password / authorization code';
+
+  @override
+  String get smtpPasswordSavedHint => 'Saved securely; leave blank to keep it';
+
+  @override
+  String get smtpFrom => 'From address';
+
+  @override
+  String get smtpFromHint => 'Defaults to the SMTP username';
+
+  @override
+  String get smtpRecipients => 'Recipients';
+
+  @override
+  String get smtpRecipientsHint =>
+      'Separate addresses with commas or semicolons';
+
+  @override
+  String get saveEmailSettings => 'Save settings';
+
+  @override
+  String get sendTestEmail => 'Send test email';
+
+  @override
+  String get sendingTestEmail => 'Sending test email';
+
+  @override
+  String get sendTestSystemNotification => 'Send test system notification';
+
+  @override
+  String get sendingTestSystemNotification =>
+      'Sending test system notification';
+
+  @override
+  String get testSystemNotificationSent => 'Test system notification sent.';
+
+  @override
+  String systemNotificationFailure(String error) {
+    return 'System notification could not be sent: $error';
+  }
+
+  @override
+  String get clearSmtpPassword => 'Clear saved password';
+
+  @override
+  String get smtpPasswordCleared =>
+      'The saved SMTP password was cleared and host alerts were disabled.';
+
+  @override
+  String get emailSettingsSaved => 'Email settings saved.';
+
+  @override
+  String testEmailSent(String recipients) {
+    return 'Test email sent to $recipients.';
+  }
+
+  @override
+  String get emailTestMissingFields =>
+      'Complete the SMTP server, port, username, app password, and valid recipients first.';
+
+  @override
+  String get emailFailureMissingConfig =>
+      'The SMTP configuration is incomplete.';
+
+  @override
+  String get emailFailureTimeout =>
+      'SMTP connection timed out. Check the server, port, and network.';
+
+  @override
+  String get emailFailureConnection => 'Could not connect to the SMTP server.';
+
+  @override
+  String get emailFailureTls =>
+      'The TLS handshake failed. Check the encryption mode and port.';
+
+  @override
+  String get emailFailureAuth =>
+      'SMTP authentication failed. Check the username and app password.';
+
+  @override
+  String get emailFailureRecipient =>
+      'The SMTP server rejected a recipient address.';
+
+  @override
+  String emailFailureUnknown(String error) {
+    return 'Email could not be sent: $error';
+  }
+
+  @override
+  String get emailIcloudHint =>
+      'iCloud: smtp.mail.me.com, port 587, STARTTLS, full iCloud address, and an Apple app-specific password.';
+
+  @override
+  String get hostEmailAlert => 'Alert on GPU availability changes';
+
+  @override
+  String get hostEmailAlertReady =>
+      'Send a system notification and email after two samples confirm a change';
+
+  @override
+  String get hostEmailAlertPaused => 'Paused because auto refresh is off';
+
+  @override
+  String get hostEmailAlertNeedsConfig =>
+      'Complete and save the email configuration first';
+
+  @override
+  String get hostEmailAlertEnableFailed =>
+      'Save a complete SMTP configuration and password before enabling alerts.';
+
+  @override
+  String get alertArmedTooltip => 'GPU availability alert monitoring is active';
+
+  @override
+  String get alertPausedTooltip => 'GPU availability alerts are paused';
+
+  @override
+  String get alertSendingTooltip => 'Sending GPU availability email';
+
+  @override
+  String get alertSentTooltip => 'GPU availability email sent';
+
+  @override
+  String alertErrorTooltip(String error) {
+    return 'Email alert failed: $error';
+  }
+
+  @override
   String get autoRefreshTitle => 'Auto refresh';
 
   @override
@@ -261,6 +415,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String autoRefreshTip(String sliderMax, String max) {
     return 'Tip: the slider goes up to ${sliderMax}s; the input accepts up to ${max}s.';
   }
+
+  @override
+  String get desktopBehaviorTitle => 'Desktop behavior';
+
+  @override
+  String get closeToBackground => 'Keep running when the window is closed';
+
+  @override
+  String get closeToBackgroundWindowsSubtitle =>
+      'Hide in the system tray; monitoring and alerts continue';
+
+  @override
+  String get closeToBackgroundMacosSubtitle =>
+      'Keep the app in the Dock; monitoring and alerts continue';
 
   @override
   String get appearance => 'Appearance';

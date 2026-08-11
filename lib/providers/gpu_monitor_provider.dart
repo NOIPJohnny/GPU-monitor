@@ -2,8 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../models/gpu_availability_event.dart';
 import '../models/host_query_result.dart';
+import '../models/email_settings.dart';
 import '../models/ssh_host.dart';
+import '../services/alert_delivery_queue.dart';
+import '../services/email_notification_sender.dart';
+import '../services/gpu_alert_engine.dart';
+import '../services/system_notification_sender.dart';
 import '../services/ssh_executor.dart';
 import '../services/gpu_query_service.dart';
 import 'settings_provider.dart';
@@ -14,6 +20,10 @@ class GpuMonitorProvider extends ChangeNotifier {
   final SettingsProvider _settings;
   late final SshExecutor _executor;
   late final GpuQueryService _service;
+  late final NotificationSender _notificationSender;
+  late final SystemNotificationSender _systemNotificationSender;
+  late final AlertDeliveryQueue _alertDeliveryQueue;
+  final GpuAlertEngine _alertEngine = GpuAlertEngine();
 
   final Map<String, HostQueryResult> _results = {};
   Map<String, HostQueryResult> get results => Map.unmodifiable(_results);
@@ -34,13 +44,49 @@ class GpuMonitorProvider extends ChangeNotifier {
   Timer? _timer;
   Duration? _armedInterval;
   bool _queuedAutoRefresh = false;
+  bool _wasAutoRefresh = false;
+  Map<String, HostAlertDelivery> get alertDeliveries =>
+      _alertDeliveryQueue.deliveries;
 
-  GpuMonitorProvider(this._settings) {
+  GpuMonitorProvider(
+    this._settings, {
+    NotificationSender? notificationSender,
+    SystemNotificationSender? systemNotificationSender,
+  }) {
     _executor = SshExecutor(onCredential: _handleCredential);
     _service = GpuQueryService(_executor);
+    _notificationSender =
+        notificationSender ??
+        EmailNotificationSender(() async {
+          final password = await _settings.loadSmtpPassword() ?? '';
+          return SmtpDeliveryConfig(
+            settings: _settings.emailSettings,
+            password: password,
+          );
+        });
+    _systemNotificationSender =
+        systemNotificationSender ??
+        SystemNotificationSender(
+          loadLanguageCode: () =>
+              (_settings.locale ?? PlatformDispatcher.instance.locale)
+                  .languageCode,
+        );
+    _alertDeliveryQueue = AlertDeliveryQueue(
+      _notificationSender,
+      onChanged: notifyListeners,
+    );
+    _wasAutoRefresh = _settings.autoRefresh;
     _settings.addListener(_onSettingsChanged);
-    if (_settings.autoRefresh) _armTimer();
+    if (_settings.autoRefresh) {
+      _syncAlertHosts();
+      _armTimer();
+    }
   }
+
+  bool get supportsSystemNotifications => _systemNotificationSender.isSupported;
+
+  Future<void> sendTestSystemNotification() =>
+      _systemNotificationSender.sendTest();
 
   Future<String?> _handleCredential(
     CredentialKind kind,
@@ -80,6 +126,10 @@ class GpuMonitorProvider extends ChangeNotifier {
       _results
         ..clear()
         ..addAll(fresh);
+      if (_settings.autoRefresh) {
+        _processAlerts(fresh);
+        _dispatchPendingAlerts();
+      }
     } finally {
       _isRefreshing = false;
       _isShowingManualRefresh = false;
@@ -103,12 +153,58 @@ class GpuMonitorProvider extends ChangeNotifier {
       if (changed) notifyListeners();
     }
 
+    if (_settings.autoRefresh) {
+      if (!_wasAutoRefresh) {
+        _clearAlertRuntime();
+      }
+      _syncAlertHosts();
+    } else if (_wasAutoRefresh) {
+      _clearAlertRuntime();
+    }
+    _wasAutoRefresh = _settings.autoRefresh;
+
     // Re-arm timer if interval or auto-refresh changed.
     if (_settings.autoRefresh) {
       _armTimer();
     } else {
       _disarmTimer();
     }
+  }
+
+  void _syncAlertHosts() {
+    final enabled = _settings.alertHosts.where(_settings.isActive).toSet();
+    _alertEngine.syncEnabledHosts(enabled);
+    _alertDeliveryQueue.retainHosts(enabled);
+  }
+
+  void _processAlerts(Map<String, HostQueryResult> fresh) {
+    for (final alias in _settings.alertHosts) {
+      final result = fresh[alias];
+      if (result == null) continue;
+      final event = _alertEngine.process(alias, result);
+      if (event == null) continue;
+      _sendSystemNotification(event);
+      _alertDeliveryQueue.enqueue(event);
+    }
+  }
+
+  void _sendSystemNotification(GpuAvailabilityEvent event) {
+    if (!_systemNotificationSender.isSupported) return;
+    unawaited(
+      _systemNotificationSender.send(event).catchError((Object error) {
+        debugPrint('Could not show GPU system notification: $error');
+      }),
+    );
+  }
+
+  void _dispatchPendingAlerts() {
+    if (!_alertDeliveryQueue.hasPending) return;
+    unawaited(_alertDeliveryQueue.dispatch());
+  }
+
+  void _clearAlertRuntime() {
+    _alertEngine.resetAll();
+    _alertDeliveryQueue.clear();
   }
 
   void _armTimer() {

@@ -216,6 +216,148 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showCpuMetricsSubtitle => '查询 CPU 利用率、内存和 CPU 占用最高的进程';
 
   @override
+  String get emailNotificationsTitle => '状态变化提醒';
+
+  @override
+  String get emailNotificationsSubtitle =>
+      'Windows/macOS 系统通知与所有服务器共用的 SMTP 配置';
+
+  @override
+  String get smtpHost => 'SMTP 服务器';
+
+  @override
+  String get smtpPort => '端口';
+
+  @override
+  String get smtpSecurity => '加密方式';
+
+  @override
+  String get smtpStartTls => 'STARTTLS';
+
+  @override
+  String get smtpImplicitTls => '隐式 TLS';
+
+  @override
+  String get smtpUsername => 'SMTP 用户名';
+
+  @override
+  String get smtpPassword => '应用专用密码 / 授权码';
+
+  @override
+  String get smtpPasswordSavedHint => '已安全保存；留空表示保留';
+
+  @override
+  String get smtpFrom => '发件地址';
+
+  @override
+  String get smtpFromHint => '留空则使用 SMTP 用户名';
+
+  @override
+  String get smtpRecipients => '收件人';
+
+  @override
+  String get smtpRecipientsHint => '多个地址用逗号或分号分隔';
+
+  @override
+  String get saveEmailSettings => '保存配置';
+
+  @override
+  String get sendTestEmail => '发送测试邮件';
+
+  @override
+  String get sendingTestEmail => '正在发送测试邮件';
+
+  @override
+  String get sendTestSystemNotification => '发送测试系统通知';
+
+  @override
+  String get sendingTestSystemNotification => '正在发送测试系统通知';
+
+  @override
+  String get testSystemNotificationSent => '测试系统通知已发送。';
+
+  @override
+  String systemNotificationFailure(String error) {
+    return '系统通知发送失败：$error';
+  }
+
+  @override
+  String get clearSmtpPassword => '清除已保存授权码';
+
+  @override
+  String get smtpPasswordCleared => '已清除 SMTP 授权码并关闭所有服务器提醒。';
+
+  @override
+  String get emailSettingsSaved => '邮件配置已保存。';
+
+  @override
+  String testEmailSent(String recipients) {
+    return '测试邮件已发送至 $recipients。';
+  }
+
+  @override
+  String get emailTestMissingFields => '请先填写 SMTP 服务器、端口、用户名、授权码和有效收件人。';
+
+  @override
+  String get emailFailureMissingConfig => 'SMTP 配置不完整。';
+
+  @override
+  String get emailFailureTimeout => '连接 SMTP 服务器超时，请检查服务器、端口和网络。';
+
+  @override
+  String get emailFailureConnection => '无法连接 SMTP 服务器。';
+
+  @override
+  String get emailFailureTls => 'TLS 握手失败，请检查加密方式和端口。';
+
+  @override
+  String get emailFailureAuth => 'SMTP 认证失败，请检查用户名和应用专用密码。';
+
+  @override
+  String get emailFailureRecipient => 'SMTP 服务器拒绝了收件人地址。';
+
+  @override
+  String emailFailureUnknown(String error) {
+    return '邮件发送失败：$error';
+  }
+
+  @override
+  String get emailIcloudHint =>
+      'iCloud 示例：smtp.mail.me.com、端口 587、STARTTLS、完整 iCloud 邮箱和 Apple 应用专用密码。';
+
+  @override
+  String get hostEmailAlert => '提醒 GPU 忙闲变化';
+
+  @override
+  String get hostEmailAlertReady => '连续两次采样确认变化后发送系统通知和邮件';
+
+  @override
+  String get hostEmailAlertPaused => '自动刷新已关闭，提醒暂停';
+
+  @override
+  String get hostEmailAlertNeedsConfig => '请先完善并保存邮件配置';
+
+  @override
+  String get hostEmailAlertEnableFailed => '开启提醒前请先保存完整 SMTP 配置和授权码。';
+
+  @override
+  String get alertArmedTooltip => 'GPU 状态提醒监测中';
+
+  @override
+  String get alertPausedTooltip => 'GPU 状态提醒已暂停';
+
+  @override
+  String get alertSendingTooltip => '正在发送 GPU 状态邮件';
+
+  @override
+  String get alertSentTooltip => 'GPU 状态邮件已发送';
+
+  @override
+  String alertErrorTooltip(String error) {
+    return '邮件提醒发送失败：$error';
+  }
+
+  @override
   String get autoRefreshTitle => '自动刷新';
 
   @override
@@ -238,6 +380,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String autoRefreshTip(String sliderMax, String max) {
     return '提示：滑块上限 ${sliderMax}s，输入框可填到 ${max}s。';
   }
+
+  @override
+  String get desktopBehaviorTitle => '后台运行';
+
+  @override
+  String get closeToBackground => '关闭窗口时继续后台运行';
+
+  @override
+  String get closeToBackgroundWindowsSubtitle => '隐藏到系统托盘，监控和提醒继续运行';
+
+  @override
+  String get closeToBackgroundMacosSubtitle => '应用保留在 Dock，监控和提醒继续运行';
 
   @override
   String get appearance => '外观';

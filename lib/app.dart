@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'l10n/app_localizations.dart';
@@ -8,7 +11,14 @@ import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 
 class SshGpuMonitorApp extends StatelessWidget {
-  const SshGpuMonitorApp({super.key});
+  const SshGpuMonitorApp({super.key, this.onHideToBackground});
+
+  final Future<void> Function()? onHideToBackground;
+
+  void _hideToBackground() {
+    final callback = onHideToBackground;
+    if (callback != null) unawaited(callback());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +35,15 @@ class SshGpuMonitorApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyW, control: true):
+              _hideToBackground,
+          const SingleActivator(LogicalKeyboardKey.keyW, meta: true):
+              _hideToBackground,
+        },
+        child: Focus(autofocus: true, child: child ?? const SizedBox.shrink()),
+      ),
       themeMode: theme.themeMode,
       theme: ThemeData(
         useMaterial3: true,
