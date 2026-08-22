@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:gpu_monitor/models/email_settings.dart';
 import 'package:gpu_monitor/models/gpu_availability_event.dart';
 import 'package:gpu_monitor/models/gpu_info.dart';
 import 'package:gpu_monitor/models/gpu_process_info.dart';
@@ -11,92 +10,27 @@ import 'package:gpu_monitor/models/host_query_result.dart';
 import 'package:gpu_monitor/models/ssh_host.dart';
 import 'package:gpu_monitor/providers/settings_provider.dart';
 import 'package:gpu_monitor/services/alert_delivery_queue.dart';
-import 'package:gpu_monitor/services/email_notification_sender.dart';
 import 'package:gpu_monitor/services/gpu_alert_engine.dart';
-import 'package:gpu_monitor/services/secret_store.dart';
 import 'package:gpu_monitor/services/system_notification_sender.dart';
 
 void main() {
-  group('EmailSettings', () {
-    test('parses, trims, and deduplicates recipients', () {
-      expect(
-        EmailSettings.parseRecipients(
-          'one@example.com; two@example.com, one@example.com',
-        ),
-        ['one@example.com', 'two@example.com'],
-      );
-    });
-
-    test('uses the username as the default from address', () {
-      const settings = EmailSettings(
-        host: 'smtp.mail.me.com',
-        port: 587,
-        username: 'user@icloud.com',
-        recipients: ['user@icloud.com'],
-      );
-      expect(settings.effectiveFromAddress, 'user@icloud.com');
-      expect(settings.isStructurallyComplete, isTrue);
-    });
-  });
-
-  group('SettingsProvider email alerts', () {
-    test('persists settings, secret, and per-host alert state', () async {
+  group('SettingsProvider alerts', () {
+    test('persists per-host system alert state', () async {
       SharedPreferences.setMockInitialValues({});
-      final secrets = _MemorySecretStore();
       Future<List<SshHost>> hosts() async => const [SshHost(alias: 'node-1')];
-      final settings = SettingsProvider(
-        secretStore: secrets,
-        hostLoader: hosts,
-      );
+      final settings = SettingsProvider(hostLoader: hosts);
       await settings.load();
-      const email = EmailSettings(
-        host: 'smtp.mail.me.com',
-        port: 587,
-        username: 'user@icloud.com',
-        recipients: ['user@icloud.com'],
-      );
 
-      await settings.saveEmailSettings(email, password: 'app-password');
       expect(await settings.setHostAlert('node-1', true), isTrue);
       expect(settings.autoRefresh, isTrue);
       expect(settings.isHostAlertEnabled('node-1'), isTrue);
 
-      final reloaded = SettingsProvider(
-        secretStore: secrets,
-        hostLoader: hosts,
-      );
+      final reloaded = SettingsProvider(hostLoader: hosts);
       await reloaded.load();
-      expect(reloaded.emailSettings.host, 'smtp.mail.me.com');
-      expect(await reloaded.loadSmtpPassword(), 'app-password');
       expect(reloaded.isHostAlertEnabled('node-1'), isTrue);
 
       await reloaded.setExcluded('node-1', true);
       expect(reloaded.isHostAlertEnabled('node-1'), isFalse);
-    });
-
-    test('clearing the password disables every host alert', () async {
-      SharedPreferences.setMockInitialValues({});
-      final secrets = _MemorySecretStore();
-      final settings = SettingsProvider(
-        secretStore: secrets,
-        hostLoader: () async => const [SshHost(alias: 'node-1')],
-      );
-      await settings.load();
-      await settings.saveEmailSettings(
-        const EmailSettings(
-          host: 'smtp.example.com',
-          username: 'sender@example.com',
-          recipients: ['receiver@example.com'],
-        ),
-        password: 'secret',
-      );
-      await settings.setHostAlert('node-1', true);
-
-      await settings.clearSmtpPassword();
-
-      expect(settings.hasSmtpPassword, isFalse);
-      expect(settings.alertHosts, isEmpty);
-      expect(await secrets.read(SettingsProvider.smtpPasswordKey), isNull);
     });
   });
 
@@ -229,19 +163,6 @@ GpuAvailabilityEvent _event(GpuAvailability current) => GpuAvailabilityEvent(
   changedGpus: [_gpu(0, idle: current == GpuAvailability.idle)],
   currentGpus: [_gpu(0, idle: current == GpuAvailability.idle)],
 );
-
-class _MemorySecretStore implements SecretStore {
-  final Map<String, String> values = {};
-
-  @override
-  Future<void> delete(String key) async => values.remove(key);
-
-  @override
-  Future<String?> read(String key) async => values[key];
-
-  @override
-  Future<void> write(String key, String value) async => values[key] = value;
-}
 
 class _FakeNotificationSender implements NotificationSender {
   int failuresRemaining;
