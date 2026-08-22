@@ -1,5 +1,8 @@
 import '../models/gpu_availability_event.dart';
-import 'email_notification_sender.dart';
+
+abstract interface class NotificationSender {
+  Future<void> send(GpuAvailabilityEvent event);
+}
 
 enum HostAlertDeliveryStatus { armed, sending, sent, error }
 

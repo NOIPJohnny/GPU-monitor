@@ -476,107 +476,17 @@ abstract class AppLocalizations {
   /// **'Query CPU usage, memory, and top CPU processes'**
   String get showCpuMetricsSubtitle;
 
-  /// No description provided for @emailNotificationsTitle.
+  /// No description provided for @notificationsTitle.
   ///
   /// In en, this message translates to:
   /// **'Availability alerts'**
-  String get emailNotificationsTitle;
+  String get notificationsTitle;
 
-  /// No description provided for @emailNotificationsSubtitle.
+  /// No description provided for @notificationsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Windows/macOS system notifications and one SMTP account for all hosts'**
-  String get emailNotificationsSubtitle;
-
-  /// No description provided for @smtpHost.
-  ///
-  /// In en, this message translates to:
-  /// **'SMTP server'**
-  String get smtpHost;
-
-  /// No description provided for @smtpPort.
-  ///
-  /// In en, this message translates to:
-  /// **'Port'**
-  String get smtpPort;
-
-  /// No description provided for @smtpSecurity.
-  ///
-  /// In en, this message translates to:
-  /// **'Encryption'**
-  String get smtpSecurity;
-
-  /// No description provided for @smtpStartTls.
-  ///
-  /// In en, this message translates to:
-  /// **'STARTTLS'**
-  String get smtpStartTls;
-
-  /// No description provided for @smtpImplicitTls.
-  ///
-  /// In en, this message translates to:
-  /// **'Implicit TLS'**
-  String get smtpImplicitTls;
-
-  /// No description provided for @smtpUsername.
-  ///
-  /// In en, this message translates to:
-  /// **'SMTP username'**
-  String get smtpUsername;
-
-  /// No description provided for @smtpPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'App password / authorization code'**
-  String get smtpPassword;
-
-  /// No description provided for @smtpPasswordSavedHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved securely; leave blank to keep it'**
-  String get smtpPasswordSavedHint;
-
-  /// No description provided for @smtpFrom.
-  ///
-  /// In en, this message translates to:
-  /// **'From address'**
-  String get smtpFrom;
-
-  /// No description provided for @smtpFromHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Defaults to the SMTP username'**
-  String get smtpFromHint;
-
-  /// No description provided for @smtpRecipients.
-  ///
-  /// In en, this message translates to:
-  /// **'Recipients'**
-  String get smtpRecipients;
-
-  /// No description provided for @smtpRecipientsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Separate addresses with commas or semicolons'**
-  String get smtpRecipientsHint;
-
-  /// No description provided for @saveEmailSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Save settings'**
-  String get saveEmailSettings;
-
-  /// No description provided for @sendTestEmail.
-  ///
-  /// In en, this message translates to:
-  /// **'Send test email'**
-  String get sendTestEmail;
-
-  /// No description provided for @sendingTestEmail.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending test email'**
-  String get sendingTestEmail;
+  /// **'Use Windows/macOS system notifications only'**
+  String get notificationsSubtitle;
 
   /// No description provided for @sendTestSystemNotification.
   ///
@@ -602,113 +512,23 @@ abstract class AppLocalizations {
   /// **'System notification could not be sent: {error}'**
   String systemNotificationFailure(String error);
 
-  /// No description provided for @clearSmtpPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear saved password'**
-  String get clearSmtpPassword;
-
-  /// No description provided for @smtpPasswordCleared.
-  ///
-  /// In en, this message translates to:
-  /// **'The saved SMTP password was cleared and host alerts were disabled.'**
-  String get smtpPasswordCleared;
-
-  /// No description provided for @emailSettingsSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Email settings saved.'**
-  String get emailSettingsSaved;
-
-  /// No description provided for @testEmailSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Test email sent to {recipients}.'**
-  String testEmailSent(String recipients);
-
-  /// No description provided for @emailTestMissingFields.
-  ///
-  /// In en, this message translates to:
-  /// **'Complete the SMTP server, port, username, app password, and valid recipients first.'**
-  String get emailTestMissingFields;
-
-  /// No description provided for @emailFailureMissingConfig.
-  ///
-  /// In en, this message translates to:
-  /// **'The SMTP configuration is incomplete.'**
-  String get emailFailureMissingConfig;
-
-  /// No description provided for @emailFailureTimeout.
-  ///
-  /// In en, this message translates to:
-  /// **'SMTP connection timed out. Check the server, port, and network.'**
-  String get emailFailureTimeout;
-
-  /// No description provided for @emailFailureConnection.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not connect to the SMTP server.'**
-  String get emailFailureConnection;
-
-  /// No description provided for @emailFailureTls.
-  ///
-  /// In en, this message translates to:
-  /// **'The TLS handshake failed. Check the encryption mode and port.'**
-  String get emailFailureTls;
-
-  /// No description provided for @emailFailureAuth.
-  ///
-  /// In en, this message translates to:
-  /// **'SMTP authentication failed. Check the username and app password.'**
-  String get emailFailureAuth;
-
-  /// No description provided for @emailFailureRecipient.
-  ///
-  /// In en, this message translates to:
-  /// **'The SMTP server rejected a recipient address.'**
-  String get emailFailureRecipient;
-
-  /// No description provided for @emailFailureUnknown.
-  ///
-  /// In en, this message translates to:
-  /// **'Email could not be sent: {error}'**
-  String emailFailureUnknown(String error);
-
-  /// No description provided for @emailIcloudHint.
-  ///
-  /// In en, this message translates to:
-  /// **'iCloud: smtp.mail.me.com, port 587, STARTTLS, full iCloud address, and an Apple app-specific password.'**
-  String get emailIcloudHint;
-
-  /// No description provided for @hostEmailAlert.
+  /// No description provided for @hostAlert.
   ///
   /// In en, this message translates to:
   /// **'Alert on GPU availability changes'**
-  String get hostEmailAlert;
+  String get hostAlert;
 
-  /// No description provided for @hostEmailAlertReady.
+  /// No description provided for @hostAlertReady.
   ///
   /// In en, this message translates to:
-  /// **'Send a system notification and email after two samples confirm a change'**
-  String get hostEmailAlertReady;
+  /// **'Send a system notification after two samples confirm a change'**
+  String get hostAlertReady;
 
-  /// No description provided for @hostEmailAlertPaused.
+  /// No description provided for @hostAlertPaused.
   ///
   /// In en, this message translates to:
   /// **'Paused because auto refresh is off'**
-  String get hostEmailAlertPaused;
-
-  /// No description provided for @hostEmailAlertNeedsConfig.
-  ///
-  /// In en, this message translates to:
-  /// **'Complete and save the email configuration first'**
-  String get hostEmailAlertNeedsConfig;
-
-  /// No description provided for @hostEmailAlertEnableFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Save a complete SMTP configuration and password before enabling alerts.'**
-  String get hostEmailAlertEnableFailed;
+  String get hostAlertPaused;
 
   /// No description provided for @alertArmedTooltip.
   ///
@@ -725,19 +545,19 @@ abstract class AppLocalizations {
   /// No description provided for @alertSendingTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Sending GPU availability email'**
+  /// **'Sending GPU availability notification'**
   String get alertSendingTooltip;
 
   /// No description provided for @alertSentTooltip.
   ///
   /// In en, this message translates to:
-  /// **'GPU availability email sent'**
+  /// **'GPU availability notification sent'**
   String get alertSentTooltip;
 
   /// No description provided for @alertErrorTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Email alert failed: {error}'**
+  /// **'System notification failed: {error}'**
   String alertErrorTooltip(String error);
 
   /// No description provided for @autoRefreshTitle.

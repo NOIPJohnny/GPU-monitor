@@ -2,12 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../models/gpu_availability_event.dart';
 import '../models/host_query_result.dart';
-import '../models/email_settings.dart';
 import '../models/ssh_host.dart';
 import '../services/alert_delivery_queue.dart';
-import '../services/email_notification_sender.dart';
 import '../services/gpu_alert_engine.dart';
 import '../services/system_notification_sender.dart';
 import '../services/ssh_executor.dart';
@@ -20,7 +17,6 @@ class GpuMonitorProvider extends ChangeNotifier {
   final SettingsProvider _settings;
   late final SshExecutor _executor;
   late final GpuQueryService _service;
-  late final NotificationSender _notificationSender;
   late final SystemNotificationSender _systemNotificationSender;
   late final AlertDeliveryQueue _alertDeliveryQueue;
   final GpuAlertEngine _alertEngine = GpuAlertEngine();
@@ -55,15 +51,6 @@ class GpuMonitorProvider extends ChangeNotifier {
   }) {
     _executor = SshExecutor(onCredential: _handleCredential);
     _service = GpuQueryService(_executor);
-    _notificationSender =
-        notificationSender ??
-        EmailNotificationSender(() async {
-          final password = await _settings.loadSmtpPassword() ?? '';
-          return SmtpDeliveryConfig(
-            settings: _settings.emailSettings,
-            password: password,
-          );
-        });
     _systemNotificationSender =
         systemNotificationSender ??
         SystemNotificationSender(
@@ -72,7 +59,7 @@ class GpuMonitorProvider extends ChangeNotifier {
                   .languageCode,
         );
     _alertDeliveryQueue = AlertDeliveryQueue(
-      _notificationSender,
+      notificationSender ?? _systemNotificationSender,
       onChanged: notifyListeners,
     );
     _wasAutoRefresh = _settings.autoRefresh;
@@ -183,18 +170,8 @@ class GpuMonitorProvider extends ChangeNotifier {
       if (result == null) continue;
       final event = _alertEngine.process(alias, result);
       if (event == null) continue;
-      _sendSystemNotification(event);
       _alertDeliveryQueue.enqueue(event);
     }
-  }
-
-  void _sendSystemNotification(GpuAvailabilityEvent event) {
-    if (!_systemNotificationSender.isSupported) return;
-    unawaited(
-      _systemNotificationSender.send(event).catchError((Object error) {
-        debugPrint('Could not show GPU system notification: $error');
-      }),
-    );
   }
 
   void _dispatchPendingAlerts() {
