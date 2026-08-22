@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../models/gpu_availability_event.dart';
-import 'email_notification_sender.dart';
+import 'alert_delivery_queue.dart';
 
 typedef NotificationLanguageLoader = String Function();
 
