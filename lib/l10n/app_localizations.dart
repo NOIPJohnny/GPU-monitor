@@ -617,7 +617,7 @@ abstract class AppLocalizations {
   /// No description provided for @closeToBackgroundMacosSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Keep the app in the Dock; monitoring and alerts continue'**
+  /// **'Keep running in the background; use the menu bar icon or Dock'**
   String get closeToBackgroundMacosSubtitle;
 
   /// No description provided for @appearance.

@@ -295,7 +295,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get closeToBackgroundWindowsSubtitle => '隐藏到系统托盘，监控和提醒继续运行';
 
   @override
-  String get closeToBackgroundMacosSubtitle => '应用保留在 Dock，监控和提醒继续运行';
+  String get closeToBackgroundMacosSubtitle => '在后台继续运行；可从菜单栏图标或 Dock 打开应用';
 
   @override
   String get appearance => '外观';

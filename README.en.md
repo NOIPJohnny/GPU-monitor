@@ -18,7 +18,8 @@ A small Flutter desktop app for querying GPU status across multiple machines ove
 - Aggregates idle GPUs by machine and GPU usage by user in the resource overview. CPU data is shown only inside each host section and is not added to the resource overview.
 - Supports host selection, manual refresh, auto-refresh interval, light/dark themes, and language switching between English and Chinese.
 - Supports per-host availability alerts that send a Windows/macOS system notification after two matching samples confirm a server-wide busy-to-idle or idle-to-busy transition.
-- Optionally keeps running after the window is closed: Windows hides the app in the system tray, while macOS keeps it in the Dock, without interrupting monitoring or alerts.
+- macOS provides an always-available menu bar panel with compact host and GPU status; the full Flutter window remains available for details.
+- Optionally keeps running after the window is closed: Windows hides the app in the system tray, while macOS keeps it available from the menu bar and Dock, without interrupting monitoring or alerts.
 
 ## Availability alerts
 
@@ -26,6 +27,6 @@ Use Send test system notification in Settings to verify Windows/macOS notificati
 
 Alerts work only while the app is running, the computer is awake, network and SSH access are available, and auto refresh is enabled. The first successful query establishes a baseline without sending a notification. Once a change is confirmed, a system notification is delivered. A server is considered idle when at least one GPU satisfies the existing idle rule.
 
-To keep receiving alerts after closing the main window, enable **Settings → Desktop behavior → Keep running when the window is closed**. On Windows, click the tray icon to restore the window or right-click it and select **Quit GPU Monitor** to exit. On macOS, click the Dock icon to restore the window and use the application menu to quit.
+To keep receiving alerts after closing the main window, enable **Settings → Desktop behavior → Keep running when the window is closed**. On Windows, click the tray icon to restore the window or right-click it and select **Quit GPU Monitor** to exit. On macOS, left-click or right-click the menu bar icon to show or hide the compact panel, use its window button for the full view, and use the application menu to quit.
 
 Building the Windows app from source requires the optional **C++ ATL for the latest v143 build tools (x86 & x64)** component in Visual Studio Build Tools for system notifications. Users of an already-built app do not need to install it.

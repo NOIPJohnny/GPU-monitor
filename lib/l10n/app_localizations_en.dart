@@ -323,7 +323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get closeToBackgroundMacosSubtitle =>
-      'Keep the app in the Dock; monitoring and alerts continue';
+      'Keep running in the background; use the menu bar icon or Dock';
 
   @override
   String get appearance => 'Appearance';

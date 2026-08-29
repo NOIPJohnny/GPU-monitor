@@ -188,7 +188,7 @@
   "desktopBehaviorTitle": "Desktop behavior",
   "closeToBackground": "Keep running when the window is closed",
   "closeToBackgroundWindowsSubtitle": "Hide in the system tray; monitoring and alerts continue",
-  "closeToBackgroundMacosSubtitle": "Keep the app in the Dock; monitoring and alerts continue",
+  "closeToBackgroundMacosSubtitle": "Keep running in the background; use the menu bar icon or Dock",
   "appearance": "Appearance",
   "themeSystem": "Use system setting",
   "themeLight": "Light",

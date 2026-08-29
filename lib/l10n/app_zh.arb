@@ -188,7 +188,7 @@
   "desktopBehaviorTitle": "后台运行",
   "closeToBackground": "关闭窗口时继续后台运行",
   "closeToBackgroundWindowsSubtitle": "隐藏到系统托盘，监控和提醒继续运行",
-  "closeToBackgroundMacosSubtitle": "应用保留在 Dock，监控和提醒继续运行",
+  "closeToBackgroundMacosSubtitle": "在后台继续运行；可从菜单栏图标或 Dock 打开应用",
   "appearance": "外观",
   "themeSystem": "跟随系统",
   "themeLight": "浅色",
