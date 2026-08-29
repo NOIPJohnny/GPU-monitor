@@ -5,9 +5,11 @@ import FlutterMacOS
 class AppDelegate: FlutterAppDelegate {
   private var menuBarChannel: FlutterMethodChannel?
   private var menuBarPanelController: MenuBarPanelController?
+  private weak var menuBarMainWindow: NSWindow?
 
   func configureMenuBar(with flutterViewController: FlutterViewController, mainWindow: NSWindow) {
     guard menuBarPanelController == nil else { return }
+    menuBarMainWindow = mainWindow
 
     let channel = FlutterMethodChannel(
       name: "gpu_monitor/menu_bar",
@@ -36,9 +38,7 @@ class AppDelegate: FlutterAppDelegate {
 
   override func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
     if !flag {
-      for window in sender.windows {
-        window.makeKeyAndOrderFront(self)
-      }
+      menuBarMainWindow?.makeKeyAndOrderFront(self)
       sender.activate(ignoringOtherApps: true)
     }
     return true

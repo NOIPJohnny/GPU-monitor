@@ -185,7 +185,7 @@ final class MenuBarPanelController: NSObject {
   func updateSnapshot(_ arguments: Any?) {
     store.update(arguments)
     if panel?.isVisible == true {
-      resizeAndPositionPanel()
+      resizePanel()
     }
   }
 
@@ -208,6 +208,19 @@ final class MenuBarPanelController: NSObject {
     resizeAndPositionPanel()
     panel.orderFrontRegardless()
     panel.makeKey()
+    positionPanelWhenReady(retriesRemaining: 5)
+  }
+
+  private func positionPanelWhenReady(retriesRemaining: Int) {
+    guard retriesRemaining > 0 else { return }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+      guard let self = self, self.panel?.isVisible == true else { return }
+      if self.statusItemScreenFrame() != nil {
+        self.resizeAndPositionPanel()
+      } else {
+        self.positionPanelWhenReady(retriesRemaining: retriesRemaining - 1)
+      }
+    }
   }
 
   private func installMouseMonitors() {
@@ -231,7 +244,8 @@ final class MenuBarPanelController: NSObject {
 
   private func isPanelEvent(_ event: NSEvent) -> Bool {
     guard let panel = panel else { return false }
-    return event.window === panel
+    if event.window === panel { return true }
+    return panel.frame.contains(NSEvent.mouseLocation)
   }
 
   private func isStatusItemEvent(_ event: NSEvent) -> Bool {
@@ -245,20 +259,32 @@ final class MenuBarPanelController: NSObject {
   }
 
   private func resizeAndPositionPanel() {
-    guard let panel = panel, let button = statusItem?.button else { return }
-    let screen = button.window?.screen ?? NSScreen.main
+    resizePanel()
+    positionPanelIfPossible()
+  }
+
+  private func resizePanel() {
+    guard let panel = panel else { return }
+    let screen = statusItem?.button?.window?.screen ?? NSScreen.main
     guard let screen = screen else { return }
 
-    let visibleFrame = screen.visibleFrame
     let width: CGFloat = 520
+    let visibleFrame = screen.visibleFrame
     let maxHeight = max(240, min(720, visibleFrame.height - 32))
     panel.contentView?.layoutSubtreeIfNeeded()
     let measuredHeight = panel.contentView?.fittingSize.height ?? 520
     let height = min(max(measuredHeight, 240), maxHeight)
     panel.setContentSize(NSSize(width: width, height: height))
+  }
 
-    let buttonFrame = button.convert(button.bounds, to: nil)
-    let screenButtonFrame = button.window?.convertToScreen(buttonFrame) ?? .zero
+  private func positionPanelIfPossible() {
+    guard let panel = panel, let button = statusItem?.button else { return }
+    guard let screenButtonFrame = statusItemScreenFrame() else { return }
+    let screen = button.window?.screen ?? NSScreen.main
+    guard let screen = screen else { return }
+    let visibleFrame = screen.visibleFrame
+    let width = panel.frame.width
+    let height = panel.frame.height
     let x = min(
       max(screenButtonFrame.midX - width / 2, visibleFrame.minX + 8),
       visibleFrame.maxX - width - 8
@@ -268,6 +294,17 @@ final class MenuBarPanelController: NSObject {
       ? belowY
       : min(screenButtonFrame.maxY + 8, visibleFrame.maxY - height - 8)
     panel.setFrameOrigin(NSPoint(x: x, y: y))
+  }
+
+  private func statusItemScreenFrame() -> NSRect? {
+    guard let button = statusItem?.button,
+          let window = button.window else {
+      return nil
+    }
+    let buttonFrame = button.convert(button.bounds, to: nil)
+    let screenFrame = window.convertToScreen(buttonFrame)
+    guard screenFrame.width > 0, screenFrame.height > 0 else { return nil }
+    return screenFrame
   }
 
   private func hidePanel() {
@@ -401,11 +438,11 @@ struct MenuBarPanelView: View {
           if store.snapshot.hosts.isEmpty {
             EmptyPanelState(strings: strings, onRefresh: onRefresh)
           } else {
-            ForEach(store.snapshot.hosts.indices, id: \.self) { index in
+            ForEach(store.snapshot.hosts) { host in
               MenuBarHostView(
-                host: store.snapshot.hosts[index],
+                host: host,
                 strings: strings,
-                initiallyExpanded: index == firstSuccessIndex
+                initiallyExpanded: host.alias == firstSuccessAlias
               )
             }
           }
@@ -437,8 +474,8 @@ struct MenuBarPanelView: View {
       "\(store.snapshot.gpuCount) \(strings.gpus) · \(store.snapshot.idleGpuCount) \(strings.idle)"
   }
 
-  private var firstSuccessIndex: Int? {
-    store.snapshot.hosts.firstIndex { $0.status == "success" }
+  private var firstSuccessAlias: String? {
+    store.snapshot.hosts.first { $0.status == "success" }?.alias
   }
 
   private var summaryColor: Color {
@@ -526,8 +563,12 @@ private struct MenuBarHostView: View {
             .font(.system(size: 11, weight: .semibold))
             .foregroundColor(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
       }
       .buttonStyle(PlainButtonStyle())
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .contentShape(Rectangle())
 
       if expanded {
         hostBody
