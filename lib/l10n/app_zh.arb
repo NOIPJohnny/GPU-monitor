@@ -185,6 +185,12 @@
       }
     }
   },
+  "menuBarShortcutTitle": "菜单栏快捷键",
+  "menuBarShortcutSubtitle": "按下快捷键显示或隐藏 Panel",
+  "menuBarShortcutRecord": "点击录入",
+  "menuBarShortcutRecording": "请按下组合键",
+  "menuBarShortcutReset": "恢复默认",
+  "menuBarShortcutInvalid": "至少需要一个修饰键",
   "desktopBehaviorTitle": "后台运行",
   "closeToBackground": "关闭窗口时继续后台运行",
   "closeToBackgroundWindowsSubtitle": "隐藏到系统托盘，监控和提醒继续运行",

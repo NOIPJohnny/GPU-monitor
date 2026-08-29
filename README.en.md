@@ -19,6 +19,7 @@ A small Flutter desktop app for querying GPU status across multiple machines ove
 - Supports host selection, manual refresh, auto-refresh interval, light/dark themes, and language switching between English and Chinese.
 - Supports per-host availability alerts that send a Windows/macOS system notification after two matching samples confirm a server-wide busy-to-idle or idle-to-busy transition.
 - macOS provides an always-available menu bar panel with compact host and GPU status; the full Flutter window remains available for details.
+- On macOS, the menu bar panel shortcut can be recorded in Settings and toggles the panel even when the main window is hidden.
 - Optionally keeps running after the window is closed: Windows hides the app in the system tray, while macOS keeps it available from the menu bar and Dock, without interrupting monitoring or alerts.
 
 ## Availability alerts

@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/gpu_monitor_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/theme_provider.dart';
+import '../services/menu_bar_shortcut.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -16,14 +20,145 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
-        children: const [
-          _SystemNotificationSection(),
-          _HostListSection(),
-          _MetricsSection(),
-          _AutoRefreshSection(),
-          _DesktopBehaviorSection(),
-          _AppearanceSection(),
+        children: [
+          const _SystemNotificationSection(),
+          const _HostListSection(),
+          const _MetricsSection(),
+          const _AutoRefreshSection(),
+          const _DesktopBehaviorSection(),
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS)
+            const _MenuBarShortcutSection(),
+          const _AppearanceSection(),
         ],
+      ),
+    );
+  }
+}
+
+class _MenuBarShortcutSection extends StatelessWidget {
+  const _MenuBarShortcutSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    return ExpansionTile(
+      initiallyExpanded: true,
+      title: Text(l10n.menuBarShortcutTitle),
+      subtitle: Text(l10n.menuBarShortcutSubtitle),
+      leading: const Icon(Icons.keyboard_alt_outlined),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _ShortcutRecorder(
+                  value: settings.menuBarShortcut,
+                  onChanged: settings.setMenuBarShortcut,
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed:
+                    settings.menuBarShortcut == MenuBarShortcut.defaultValue
+                    ? null
+                    : () => settings.setMenuBarShortcut(
+                        MenuBarShortcut.defaultValue,
+                      ),
+                child: Text(l10n.menuBarShortcutReset),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShortcutRecorder extends StatefulWidget {
+  const _ShortcutRecorder({required this.value, required this.onChanged});
+
+  final String value;
+  final Future<void> Function(String shortcut) onChanged;
+
+  @override
+  State<_ShortcutRecorder> createState() => _ShortcutRecorderState();
+}
+
+class _ShortcutRecorderState extends State<_ShortcutRecorder> {
+  final _focusNode = FocusNode();
+  bool _recording = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape) {
+      setState(() {
+        _recording = false;
+        _error = null;
+      });
+      _focusNode.unfocus();
+      return KeyEventResult.handled;
+    }
+
+    final shortcut = MenuBarShortcut.fromKeyEvent(event);
+    if (shortcut == null) {
+      if (event is KeyDownEvent) {
+        setState(
+          () => _error = AppLocalizations.of(context)!.menuBarShortcutInvalid,
+        );
+      }
+      return KeyEventResult.handled;
+    }
+
+    unawaited(widget.onChanged(shortcut));
+    setState(() {
+      _recording = false;
+      _error = null;
+    });
+    _focusNode.unfocus();
+    return KeyEventResult.handled;
+  }
+
+  void _startRecording() {
+    setState(() {
+      _recording = true;
+      _error = null;
+    });
+    _focusNode.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      child: InkWell(
+        onTap: _startRecording,
+        borderRadius: BorderRadius.circular(4),
+        child: InputDecorator(
+          isFocused: _recording,
+          decoration: InputDecoration(
+            labelText: _recording
+                ? l10n.menuBarShortcutRecording
+                : l10n.menuBarShortcutRecord,
+            errorText: _error,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          child: Text(
+            MenuBarShortcut.display(widget.value),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
       ),
     );
   }

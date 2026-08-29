@@ -51,6 +51,7 @@ void main() {
     expect(calls.last.method, 'updateSnapshot');
     final snapshot = Map<String, dynamic>.from(calls.last.arguments as Map);
     expect(snapshot['themeMode'], 'system');
+    expect(snapshot['menuBarShortcut'], 'cmd+shift+g');
     expect(snapshot['hosts'], hasLength(1));
     expect((snapshot['hosts'] as List).single['status'], 'idle');
 

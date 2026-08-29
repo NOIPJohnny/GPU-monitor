@@ -312,6 +312,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get menuBarShortcutTitle => 'Menu bar shortcut';
+
+  @override
+  String get menuBarShortcutSubtitle =>
+      'Press the shortcut to show or hide the panel';
+
+  @override
+  String get menuBarShortcutRecord => 'Click to record';
+
+  @override
+  String get menuBarShortcutRecording => 'Press a key combination';
+
+  @override
+  String get menuBarShortcutReset => 'Reset';
+
+  @override
+  String get menuBarShortcutInvalid => 'Use at least one modifier key';
+
+  @override
   String get desktopBehaviorTitle => 'Desktop behavior';
 
   @override

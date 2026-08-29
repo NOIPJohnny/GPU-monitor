@@ -1,4 +1,5 @@
 import Cocoa
+import Carbon.HIToolbox
 import FlutterMacOS
 import SwiftUI
 
@@ -17,6 +18,7 @@ struct MenuBarSnapshot {
   var isRefreshing = false
   var autoRefresh = false
   var intervalSeconds = 10.0
+  var menuBarShortcut = "cmd+shift+g"
   var lastRefreshedAt: Date?
   var hosts: [MenuBarHostSnapshot] = []
 
@@ -28,6 +30,7 @@ struct MenuBarSnapshot {
     isRefreshing = dictionary["isRefreshing"] as? Bool ?? false
     autoRefresh = dictionary["autoRefresh"] as? Bool ?? false
     intervalSeconds = MenuBarValue.double(dictionary["intervalSeconds"]) ?? 10
+    menuBarShortcut = dictionary["menuBarShortcut"] as? String ?? "cmd+shift+g"
     lastRefreshedAt = MenuBarValue.date(dictionary["lastRefreshedAt"])
     hosts = MenuBarValue.dictionaries(dictionary["hosts"]).map {
       MenuBarHostSnapshot(dictionary: $0)
@@ -101,6 +104,44 @@ struct MenuBarProcessSnapshot {
   }
 }
 
+private struct NativeMenuBarShortcut {
+  let keyCode: UInt32
+  let modifiers: UInt32
+
+  init?(rawValue: String) {
+    let parts = rawValue.lowercased().split(separator: "+").map(String.init)
+    guard parts.count >= 2, let keyCode = Self.keyCodes[parts.last!] else {
+      return nil
+    }
+
+    var modifiers: UInt32 = 0
+    var seen = Set<String>()
+    for modifier in parts.dropLast() {
+      guard seen.insert(modifier).inserted else { return nil }
+      switch modifier {
+      case "cmd": modifiers |= UInt32(cmdKey)
+      case "ctrl": modifiers |= UInt32(controlKey)
+      case "alt": modifiers |= UInt32(optionKey)
+      case "shift": modifiers |= UInt32(shiftKey)
+      default: return nil
+      }
+    }
+    self.keyCode = keyCode
+    self.modifiers = modifiers
+  }
+
+  private static let keyCodes: [String: UInt32] = [
+    "a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5, "z": 6,
+    "x": 7, "c": 8, "v": 9, "b": 11, "q": 12, "w": 13, "e": 14,
+    "r": 15, "y": 16, "t": 17, "1": 18, "2": 19, "3": 20, "4": 21,
+    "6": 22, "5": 23, "9": 25, "7": 26, "8": 28, "0": 29, "o": 31,
+    "u": 32, "i": 34, "p": 35, "l": 37, "j": 38, "k": 40, "n": 45,
+    "m": 46, "space": 49, "f1": 122, "f2": 120, "f3": 99, "f4": 118,
+    "f5": 96, "f6": 97, "f7": 98, "f8": 100, "f9": 101, "f10": 109,
+    "f11": 103, "f12": 111,
+  ]
+}
+
 private enum MenuBarValue {
   static func dictionaries(_ value: Any?) -> [[String: Any]] {
     if let array = value as? [Any] {
@@ -142,6 +183,21 @@ final class MenuBarPanelController: NSObject {
   private var panel: MenuBarPanelWindow?
   private var globalMouseMonitor: Any?
   private var localMouseMonitor: Any?
+  private var hotKeyRef: EventHotKeyRef?
+  private var hotKeyHandlerRef: EventHandlerRef?
+  private var resizeScheduled = false
+
+  private static let hotKeySignature: OSType = 0x4750554D
+  private static let hotKeyHandler: EventHandlerUPP = { _, _, userData in
+    guard let userData = userData else { return noErr }
+    let controller = Unmanaged<MenuBarPanelController>
+      .fromOpaque(userData)
+      .takeUnretainedValue()
+    DispatchQueue.main.async {
+      controller.togglePanel()
+    }
+    return noErr
+  }
 
   init(channel: FlutterMethodChannel, mainWindow: NSWindow) {
     self.channel = channel
@@ -177,15 +233,21 @@ final class MenuBarPanelController: NSObject {
       store: store,
       onRefresh: { [weak self] in self?.requestRefresh() },
       onSettings: { [weak self] in self?.openSettings() },
-      onOpenMainWindow: { [weak self] in self?.showMainWindow() }
+      onOpenMainWindow: { [weak self] in self?.showMainWindow() },
+      onContentSizeChanged: { [weak self] in self?.schedulePanelResize() }
     )
+    registerGlobalShortcut(store.snapshot.menuBarShortcut)
     installMouseMonitors()
   }
 
   func updateSnapshot(_ arguments: Any?) {
+    let previousShortcut = store.snapshot.menuBarShortcut
     store.update(arguments)
+    if previousShortcut != store.snapshot.menuBarShortcut {
+      registerGlobalShortcut(store.snapshot.menuBarShortcut)
+    }
     if panel?.isVisible == true {
-      resizePanel()
+      schedulePanelResize()
     }
   }
 
@@ -219,6 +281,27 @@ final class MenuBarPanelController: NSObject {
         self.resizeAndPositionPanel()
       } else {
         self.positionPanelWhenReady(retriesRemaining: retriesRemaining - 1)
+      }
+    }
+  }
+
+  private func schedulePanelResize() {
+    guard panel?.isVisible == true, !resizeScheduled else { return }
+    resizeScheduled = true
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+      guard self.panel?.isVisible == true else {
+        self.resizeScheduled = false
+        return
+      }
+      self.resizePanel()
+      self.positionPanelIfPossible()
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
+        guard let self = self else { return }
+        self.resizeScheduled = false
+        guard self.panel?.isVisible == true else { return }
+        self.resizePanel()
+        self.positionPanelIfPossible()
       }
     }
   }
@@ -271,6 +354,7 @@ final class MenuBarPanelController: NSObject {
     let width: CGFloat = 520
     let visibleFrame = screen.visibleFrame
     let maxHeight = max(240, min(720, visibleFrame.height - 32))
+    panel.contentView?.invalidateIntrinsicContentSize()
     panel.contentView?.layoutSubtreeIfNeeded()
     let measuredHeight = panel.contentView?.fittingSize.height ?? 520
     let height = min(max(measuredHeight, 240), maxHeight)
@@ -327,8 +411,53 @@ final class MenuBarPanelController: NSObject {
     NSApp.activate(ignoringOtherApps: true)
   }
 
+  private func registerGlobalShortcut(_ rawValue: String) {
+    unregisterGlobalShortcut()
+    guard let shortcut = NativeMenuBarShortcut(rawValue: rawValue) else { return }
+
+    var eventType = EventTypeSpec(
+      eventClass: OSType(kEventClassKeyboard),
+      eventKind: UInt32(kEventHotKeyPressed)
+    )
+    let userData = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+    let installStatus = InstallEventHandler(
+      GetApplicationEventTarget(),
+      Self.hotKeyHandler,
+      1,
+      &eventType,
+      userData,
+      &hotKeyHandlerRef
+    )
+    guard installStatus == noErr else { return }
+
+    var hotKeyId = EventHotKeyID(signature: Self.hotKeySignature, id: 1)
+    let registerStatus = RegisterEventHotKey(
+      shortcut.keyCode,
+      shortcut.modifiers,
+      hotKeyId,
+      GetApplicationEventTarget(),
+      0,
+      &hotKeyRef
+    )
+    if registerStatus != noErr {
+      unregisterGlobalShortcut()
+    }
+  }
+
+  private func unregisterGlobalShortcut() {
+    if let hotKeyRef = hotKeyRef {
+      UnregisterEventHotKey(hotKeyRef)
+    }
+    if let hotKeyHandlerRef = hotKeyHandlerRef {
+      RemoveEventHandler(hotKeyHandlerRef)
+    }
+    hotKeyRef = nil
+    hotKeyHandlerRef = nil
+  }
+
   func stop() {
     hidePanel()
+    unregisterGlobalShortcut()
     if let globalMouseMonitor = globalMouseMonitor {
       NSEvent.removeMonitor(globalMouseMonitor)
     }
@@ -350,7 +479,8 @@ final class MenuBarPanelWindow: NSPanel {
     store: MenuBarSnapshotStore,
     onRefresh: @escaping () -> Void,
     onSettings: @escaping () -> Void,
-    onOpenMainWindow: @escaping () -> Void
+    onOpenMainWindow: @escaping () -> Void,
+    onContentSizeChanged: @escaping () -> Void
   ) {
     super.init(
       contentRect: NSRect(x: 0, y: 0, width: 520, height: 520),
@@ -363,7 +493,8 @@ final class MenuBarPanelWindow: NSPanel {
       store: store,
       onRefresh: onRefresh,
       onSettings: onSettings,
-      onOpenMainWindow: onOpenMainWindow
+      onOpenMainWindow: onOpenMainWindow,
+      onContentSizeChanged: onContentSizeChanged
     )
     let hostingView = NSHostingView(rootView: rootView)
     hostingView.autoresizingMask = [.width, .height]
@@ -388,6 +519,7 @@ struct MenuBarPanelView: View {
   let onRefresh: () -> Void
   let onSettings: () -> Void
   let onOpenMainWindow: () -> Void
+  let onContentSizeChanged: () -> Void
 
   private var strings: MenuBarStrings {
     MenuBarStrings(language: store.snapshot.language)
@@ -442,7 +574,8 @@ struct MenuBarPanelView: View {
               MenuBarHostView(
                 host: host,
                 strings: strings,
-                initiallyExpanded: host.alias == firstSuccessAlias
+                initiallyExpanded: host.alias == firstSuccessAlias,
+                onContentSizeChanged: onContentSizeChanged
               )
             }
           }
@@ -534,18 +667,28 @@ private struct MenuBarHostView: View {
   let host: MenuBarHostSnapshot
   let strings: MenuBarStrings
   let initiallyExpanded: Bool
+  let onContentSizeChanged: () -> Void
   @State private var expanded: Bool
 
-  init(host: MenuBarHostSnapshot, strings: MenuBarStrings, initiallyExpanded: Bool) {
+  init(
+    host: MenuBarHostSnapshot,
+    strings: MenuBarStrings,
+    initiallyExpanded: Bool,
+    onContentSizeChanged: @escaping () -> Void
+  ) {
     self.host = host
     self.strings = strings
     self.initiallyExpanded = initiallyExpanded
+    self.onContentSizeChanged = onContentSizeChanged
     _expanded = State(initialValue: initiallyExpanded)
   }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Button(action: { expanded.toggle() }) {
+      Button(action: {
+        expanded.toggle()
+        onContentSizeChanged()
+      }) {
         HStack(spacing: 8) {
           Circle()
             .fill(statusColor)

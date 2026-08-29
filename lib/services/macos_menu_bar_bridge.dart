@@ -87,6 +87,7 @@ class MacosMenuBarBridge {
       'isRefreshing': monitor.isRefreshing,
       'autoRefresh': settings.autoRefresh,
       'intervalSeconds': settings.intervalSeconds,
+      'menuBarShortcut': settings.menuBarShortcut,
       'lastRefreshedAt': monitor.lastRefreshedAt?.toIso8601String(),
       'hosts': [
         for (final host in settings.activeHosts)

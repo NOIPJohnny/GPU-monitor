@@ -596,6 +596,42 @@ abstract class AppLocalizations {
   /// **'Tip: the slider goes up to {sliderMax}s; the input accepts up to {max}s.'**
   String autoRefreshTip(String sliderMax, String max);
 
+  /// No description provided for @menuBarShortcutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu bar shortcut'**
+  String get menuBarShortcutTitle;
+
+  /// No description provided for @menuBarShortcutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Press the shortcut to show or hide the panel'**
+  String get menuBarShortcutSubtitle;
+
+  /// No description provided for @menuBarShortcutRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Click to record'**
+  String get menuBarShortcutRecord;
+
+  /// No description provided for @menuBarShortcutRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Press a key combination'**
+  String get menuBarShortcutRecording;
+
+  /// No description provided for @menuBarShortcutReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get menuBarShortcutReset;
+
+  /// No description provided for @menuBarShortcutInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least one modifier key'**
+  String get menuBarShortcutInvalid;
+
   /// No description provided for @desktopBehaviorTitle.
   ///
   /// In en, this message translates to:
