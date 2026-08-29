@@ -118,20 +118,12 @@ class MacosMenuBarBridge {
         for (final gpu in result?.gpus ?? const [])
           {
             'index': gpu.index,
-            'name': gpu.name,
             'gpuUtil': gpu.gpuUtil,
             'memUsed': gpu.memUsed,
             'memTotal': gpu.memTotal,
-            'temp': gpu.temp,
-            'powerDraw': gpu.powerDraw,
             'processes': [
               for (final process in gpu.processes)
-                {
-                  'user': process.user,
-                  'name': process.name,
-                  'command': process.command,
-                  'usedMemory': process.usedMemory,
-                },
+                {'user': process.user, 'usedMemory': process.usedMemory},
             ],
           },
       ],

@@ -75,22 +75,16 @@ struct MenuBarHostSnapshot: Identifiable {
 
 struct MenuBarGpuSnapshot {
   let index: Int
-  let name: String
   let gpuUtil: Int?
   let memUsed: Int?
   let memTotal: Int?
-  let temp: Int?
-  let powerDraw: Double?
   let processes: [MenuBarProcessSnapshot]
 
   init(dictionary: [String: Any]) {
     index = MenuBarValue.int(dictionary["index"]) ?? 0
-    name = dictionary["name"] as? String ?? "GPU"
     gpuUtil = MenuBarValue.int(dictionary["gpuUtil"])
     memUsed = MenuBarValue.int(dictionary["memUsed"])
     memTotal = MenuBarValue.int(dictionary["memTotal"])
-    temp = MenuBarValue.int(dictionary["temp"])
-    powerDraw = MenuBarValue.double(dictionary["powerDraw"])
     processes = MenuBarValue.dictionaries(dictionary["processes"]).map {
       MenuBarProcessSnapshot(dictionary: $0)
     }
@@ -99,14 +93,10 @@ struct MenuBarGpuSnapshot {
 
 struct MenuBarProcessSnapshot {
   let user: String?
-  let name: String
-  let command: String?
   let usedMemory: Int?
 
   init(dictionary: [String: Any]) {
     user = dictionary["user"] as? String
-    name = dictionary["name"] as? String ?? "process"
-    command = dictionary["command"] as? String
     usedMemory = MenuBarValue.int(dictionary["usedMemory"])
   }
 }
@@ -150,6 +140,8 @@ final class MenuBarPanelController: NSObject {
   private weak var mainWindow: NSWindow?
   private var statusItem: NSStatusItem?
   private var panel: MenuBarPanelWindow?
+  private var globalMouseMonitor: Any?
+  private var localMouseMonitor: Any?
 
   init(channel: FlutterMethodChannel, mainWindow: NSWindow) {
     self.channel = channel
@@ -187,6 +179,7 @@ final class MenuBarPanelController: NSObject {
       onSettings: { [weak self] in self?.openSettings() },
       onOpenMainWindow: { [weak self] in self?.showMainWindow() }
     )
+    installMouseMonitors()
   }
 
   func updateSnapshot(_ arguments: Any?) {
@@ -210,9 +203,45 @@ final class MenuBarPanelController: NSObject {
 
   private func showPanel() {
     guard let panel = panel, statusItem?.button != nil else { return }
+    NSApp.unhideWithoutActivation()
+    NSApp.activate(ignoringOtherApps: true)
     resizeAndPositionPanel()
     panel.orderFrontRegardless()
     panel.makeKey()
+  }
+
+  private func installMouseMonitors() {
+    globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(
+      matching: [.leftMouseDown, .rightMouseDown]
+    ) { [weak self] _ in
+      guard let self = self, self.panel?.isVisible == true else { return }
+      self.hidePanel()
+    }
+    localMouseMonitor = NSEvent.addLocalMonitorForEvents(
+      matching: [.leftMouseDown, .rightMouseDown]
+    ) { [weak self] event in
+      guard let self = self, self.panel?.isVisible == true else { return event }
+      if self.isPanelEvent(event) || self.isStatusItemEvent(event) {
+        return event
+      }
+      self.hidePanel()
+      return event
+    }
+  }
+
+  private func isPanelEvent(_ event: NSEvent) -> Bool {
+    guard let panel = panel else { return false }
+    return event.window === panel
+  }
+
+  private func isStatusItemEvent(_ event: NSEvent) -> Bool {
+    guard let button = statusItem?.button,
+          let window = button.window,
+          event.window === window else {
+      return false
+    }
+    let buttonFrame = button.convert(button.bounds, to: nil)
+    return buttonFrame.contains(event.locationInWindow)
   }
 
   private func resizeAndPositionPanel() {
@@ -263,6 +292,14 @@ final class MenuBarPanelController: NSObject {
 
   func stop() {
     hidePanel()
+    if let globalMouseMonitor = globalMouseMonitor {
+      NSEvent.removeMonitor(globalMouseMonitor)
+    }
+    if let localMouseMonitor = localMouseMonitor {
+      NSEvent.removeMonitor(localMouseMonitor)
+    }
+    globalMouseMonitor = nil
+    localMouseMonitor = nil
     if let statusItem = statusItem {
       NSStatusBar.system.removeStatusItem(statusItem)
     }
@@ -298,7 +335,7 @@ final class MenuBarPanelWindow: NSPanel {
     isFloatingPanel = true
     level = .statusBar
     collectionBehavior = [.transient, .moveToActiveSpace]
-    hidesOnDeactivate = true
+    hidesOnDeactivate = false
     becomesKeyOnlyIfNeeded = true
     isOpaque = false
     backgroundColor = .clear
@@ -509,14 +546,15 @@ private struct MenuBarHostView: View {
   private var hostBody: some View {
     switch host.status {
     case "success":
-      VStack(alignment: .leading, spacing: 8) {
-        ForEach(Array(stride(from: 0, to: host.gpus.count, by: 2)), id: \.self) { start in
-          HStack(alignment: .top, spacing: 8) {
-            MenuBarGpuCard(gpu: host.gpus[start], strings: strings)
-            if start + 1 < host.gpus.count {
-              MenuBarGpuCard(gpu: host.gpus[start + 1], strings: strings)
-            } else {
-              Spacer().frame(maxWidth: .infinity)
+      VStack(alignment: .leading, spacing: 6) {
+        ForEach(Array(stride(from: 0, to: host.gpus.count, by: 4)), id: \.self) { start in
+          HStack(alignment: .top, spacing: 6) {
+            ForEach(0..<4, id: \.self) { offset in
+              if start + offset < host.gpus.count {
+                MenuBarGpuCard(gpu: host.gpus[start + offset], strings: strings)
+              } else {
+                Spacer().frame(maxWidth: .infinity)
+              }
             }
           }
         }
@@ -566,26 +604,24 @@ private struct MenuBarHostView: View {
   }
 }
 
+private struct MenuBarUserUsage: Identifiable {
+  let user: String
+  let memory: Int
+
+  var id: String { user }
+}
+
 private struct MenuBarGpuCard: View {
   let gpu: MenuBarGpuSnapshot
   let strings: MenuBarStrings
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      HStack(alignment: .firstTextBaseline, spacing: 4) {
+    VStack(alignment: .leading, spacing: 4) {
+      HStack {
         Text("GPU\(gpu.index)")
-          .font(.system(size: 13, weight: .semibold))
+          .font(.system(size: 11, weight: .semibold))
         Spacer()
-        if let power = gpu.powerDraw {
-          Text("\(power, specifier: "%.0f")W")
-            .font(.system(size: 11))
-            .foregroundColor(.secondary)
-        }
       }
-      Text(gpu.name)
-        .font(.system(size: 10))
-        .foregroundColor(.secondary)
-        .lineLimit(1)
       MenuBarMetricRow(
         label: strings.utilization,
         value: gpu.gpuUtil.map { "\($0)%" } ?? "N/A"
@@ -593,55 +629,40 @@ private struct MenuBarGpuCard: View {
       MenuBarProgressBar(value: gpu.gpuUtil.map { Double($0) / 100 }, color: .blue)
       MenuBarMetricRow(label: strings.memory, value: memoryText)
       MenuBarProgressBar(value: memoryFraction, color: .purple)
-      HStack(spacing: 8) {
-        if let temp = gpu.temp {
-          Text("\(temp)°C")
-        }
-        if gpu.temp != nil && gpu.powerDraw != nil {
-          Text("·")
-        }
-        if let power = gpu.powerDraw {
-          Text("\(power, specifier: "%.0f")W")
-        }
-      }
-      .font(.system(size: 10))
-      .foregroundColor(.secondary)
-      if !gpu.processes.isEmpty {
-        Divider()
-        ForEach(Array(gpu.processes.prefix(2).enumerated()), id: \.offset) { _, process in
-          VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-              Circle().fill(Color.blue).frame(width: 5, height: 5)
-              Text(process.user ?? process.name).lineLimit(1)
-              Spacer()
-              Text(processMemory(process.usedMemory))
-            }
-            Text(process.command ?? process.name)
-              .lineLimit(1)
-              .foregroundColor(.secondary)
+      if users.isEmpty {
+        Text(strings.noUsers)
+          .font(.system(size: 9))
+          .foregroundColor(.secondary)
+      } else {
+        ForEach(users.prefix(2)) { usage in
+          HStack(spacing: 3) {
+            Circle().fill(Color.blue).frame(width: 4, height: 4)
+            Text(usage.user).lineLimit(1)
+            Spacer()
+            Text(memory(usage.memory))
           }
-          .font(.system(size: 10))
+          .font(.system(size: 9))
         }
-        if gpu.processes.count > 2 {
-          Text("+\(gpu.processes.count - 2) \(strings.moreProcesses)")
-            .font(.system(size: 10))
+        if users.count > 2 {
+          Text("+\(users.count - 2) \(strings.moreUsers)")
+            .font(.system(size: 9))
             .foregroundColor(.secondary)
         }
       }
     }
-    .padding(9)
+    .padding(6)
     .frame(maxWidth: .infinity, alignment: .topLeading)
     .background(Color(nsColor: .controlBackgroundColor).opacity(0.62))
     .overlay(
-      RoundedRectangle(cornerRadius: 9, style: .continuous)
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
         .stroke(Color.primary.opacity(0.1), lineWidth: 1)
     )
-    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
   }
 
   private var memoryText: String {
     guard let total = gpu.memTotal else { return "N/A" }
-    return "\(memory(gpu.memUsed)) / \(memory(total))"
+    return "\(memory(gpu.memUsed ?? 0)) / \(memory(total))"
   }
 
   private var memoryFraction: Double? {
@@ -649,14 +670,18 @@ private struct MenuBarGpuCard: View {
     return min(max(Double(used) / Double(total), 0), 1)
   }
 
-  private func memory(_ value: Int?) -> String {
-    guard let value = value else { return "-" }
-    if value >= 1024 { return String(format: "%.1fG", Double(value) / 1024) }
-    return "\(value)M"
+  private var users: [MenuBarUserUsage] {
+    var memoryByUser: [String: Int] = [:]
+    for process in gpu.processes {
+      let user = process.user ?? strings.unknownUser
+      memoryByUser[user, default: 0] += process.usedMemory ?? 0
+    }
+    return memoryByUser.keys.sorted().map { user in
+      MenuBarUserUsage(user: user, memory: memoryByUser[user] ?? 0)
+    }
   }
 
-  private func processMemory(_ value: Int?) -> String {
-    guard let value = value else { return "-" }
+  private func memory(_ value: Int) -> String {
     if value >= 1024 { return String(format: "%.1fG", Double(value) / 1024) }
     return "\(value)M"
   }
@@ -724,7 +749,9 @@ private struct MenuBarStrings {
   var noGpu: String { language == "zh" ? "未检测到 GPU" : "No GPU detected" }
   var notQueried: String { language == "zh" ? "尚未查询" : "Not queried yet" }
   var noHosts: String { language == "zh" ? "没有可监控的主机" : "No hosts to monitor" }
-  var moreProcesses: String { language == "zh" ? "个进程" : "more processes" }
+  var noUsers: String { language == "zh" ? "暂无用户" : "No users" }
+  var unknownUser: String { language == "zh" ? "未知用户" : "Unknown user" }
+  var moreUsers: String { language == "zh" ? "个用户" : "more users" }
 
   func autoRefresh(_ interval: Double) -> String {
     let value = interval == interval.rounded()
