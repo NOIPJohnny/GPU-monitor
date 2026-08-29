@@ -458,10 +458,10 @@ final class MenuBarPanelController: NSObject {
     guard AXIsProcessTrustedWithOptions(options as CFDictionary) else { return nil }
 
     let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
-    guard let extrasMenuBar = accessibilityValue(applicationElement, "AXExtrasMenuBar"),
-          let extrasElement = extrasMenuBar as? AXUIElement else {
+    guard let extrasMenuBar = accessibilityValue(applicationElement, "AXExtrasMenuBar") else {
       return nil
     }
+    let extrasElement = extrasMenuBar as AXUIElement
 
     let candidates = accessibilityChildren(extrasElement).compactMap { element -> (NSRect, String)? in
       guard let frame = accessibilityFrame(element) else { return nil }
@@ -482,10 +482,10 @@ final class MenuBarPanelController: NSObject {
     guard AXIsProcessTrustedWithOptions(options as CFDictionary) else { return false }
 
     let application = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
-    guard let extrasMenuBar = accessibilityValue(application, "AXExtrasMenuBar"),
-          let extrasElement = extrasMenuBar as? AXUIElement else {
+    guard let extrasMenuBar = accessibilityValue(application, "AXExtrasMenuBar") else {
       return false
     }
+    let extrasElement = extrasMenuBar as AXUIElement
     let candidates = accessibilityChildren(extrasElement).filter { element in
       let role = accessibilityValue(element, kAXRoleAttribute as String) as? String ?? ""
       return role == "AXMenuItem" || role == "AXMenuBarItem" || role == "AXButton"
@@ -510,10 +510,12 @@ final class MenuBarPanelController: NSObject {
   }
 
   private func accessibilityFrame(_ element: AXUIElement) -> NSRect? {
-    guard let positionValue = accessibilityValue(element, kAXPositionAttribute as String) as? AXValue,
-          let sizeValue = accessibilityValue(element, kAXSizeAttribute as String) as? AXValue else {
+    guard let positionReference = accessibilityValue(element, kAXPositionAttribute as String),
+          let sizeReference = accessibilityValue(element, kAXSizeAttribute as String) else {
       return nil
     }
+    let positionValue = positionReference as AXValue
+    let sizeValue = sizeReference as AXValue
     var position = CGPoint.zero
     var size = CGSize.zero
     guard AXValueGetValue(positionValue, .cgPoint, &position),
@@ -583,7 +585,7 @@ final class MenuBarPanelController: NSObject {
     )
     guard installStatus == noErr else { return }
 
-    var hotKeyId = EventHotKeyID(signature: Self.hotKeySignature, id: 1)
+    let hotKeyId = EventHotKeyID(signature: Self.hotKeySignature, id: 1)
     let registerStatus = RegisterEventHotKey(
       shortcut.keyCode,
       shortcut.modifiers,
