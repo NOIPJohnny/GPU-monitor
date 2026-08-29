@@ -2,6 +2,7 @@ import Cocoa
 import Carbon.HIToolbox
 import FlutterMacOS
 import SwiftUI
+import ApplicationServices
 
 final class MenuBarSnapshotStore: ObservableObject {
   @Published var snapshot = MenuBarSnapshot()
@@ -186,6 +187,8 @@ final class MenuBarPanelController: NSObject {
   private var hotKeyRef: EventHotKeyRef?
   private var hotKeyHandlerRef: EventHandlerRef?
   private var resizeScheduled = false
+  private var panelAnchorFrame: NSRect?
+  private var preferOwnAnchor = false
 
   private static let hotKeySignature: OSType = 0x4750554D
   private static let hotKeyHandler: EventHandlerUPP = { _, _, userData in
@@ -194,7 +197,7 @@ final class MenuBarPanelController: NSObject {
       .fromOpaque(userData)
       .takeUnretainedValue()
     DispatchQueue.main.async {
-      controller.togglePanel()
+      controller.handleHotKey()
     }
     return noErr
   }
@@ -255,6 +258,33 @@ final class MenuBarPanelController: NSObject {
     togglePanel()
   }
 
+  private func handleHotKey() {
+    let shouldShow = panel?.isVisible != true
+    let shouldUseAccessibility = statusItemScreenFrame() == nil && iBarApplication() != nil
+    var usedAccessibility = false
+
+    if shouldUseAccessibility {
+      usedAccessibility = pressOwnStatusItemThroughAccessibility()
+    }
+    if !usedAccessibility {
+      statusItem?.button?.performClick(nil)
+    }
+
+    preferOwnAnchor = usedAccessibility
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+      guard let self = self else { return }
+      if shouldShow {
+        if self.panel?.isVisible == true {
+          self.resizeAndPositionPanel(refreshAnchor: true)
+        } else {
+          self.showPanel()
+        }
+      } else if self.panel?.isVisible == true {
+        self.hidePanel()
+      }
+    }
+  }
+
   private func togglePanel() {
     if panel?.isVisible == true {
       hidePanel()
@@ -266,7 +296,7 @@ final class MenuBarPanelController: NSObject {
   private func showPanel() {
     guard let panel = panel, statusItem?.button != nil else { return }
     NSApp.unhideWithoutActivation()
-    resizeAndPositionPanel()
+    resizeAndPositionPanel(refreshAnchor: true)
     panel.orderFrontRegardless()
     panel.makeKey()
     positionPanelWhenReady(retriesRemaining: 5)
@@ -276,11 +306,8 @@ final class MenuBarPanelController: NSObject {
     guard retriesRemaining > 0 else { return }
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
       guard let self = self, self.panel?.isVisible == true else { return }
-      if self.statusItemScreenFrame() != nil {
-        self.resizeAndPositionPanel()
-      } else {
-        self.positionPanelWhenReady(retriesRemaining: retriesRemaining - 1)
-      }
+      self.resizeAndPositionPanel(refreshAnchor: true)
+      self.positionPanelWhenReady(retriesRemaining: retriesRemaining - 1)
     }
   }
 
@@ -340,9 +367,9 @@ final class MenuBarPanelController: NSObject {
     return buttonFrame.contains(event.locationInWindow)
   }
 
-  private func resizeAndPositionPanel() {
+  private func resizeAndPositionPanel(refreshAnchor: Bool = false) {
     resizePanel()
-    positionPanelIfPossible()
+    positionPanelIfPossible(refreshAnchor: refreshAnchor)
   }
 
   private func resizePanel() {
@@ -360,23 +387,149 @@ final class MenuBarPanelController: NSObject {
     panel.setContentSize(NSSize(width: width, height: height))
   }
 
-  private func positionPanelIfPossible() {
-    guard let panel = panel, let button = statusItem?.button else { return }
-    guard let screenButtonFrame = statusItemScreenFrame() else { return }
-    let screen = button.window?.screen ?? NSScreen.main
+  private func positionPanelIfPossible(refreshAnchor: Bool = false) {
+    guard let panel = panel else { return }
+    if refreshAnchor || panelAnchorFrame == nil {
+      panelAnchorFrame = resolvedPanelAnchorFrame()
+    }
+    guard let anchorFrame = panelAnchorFrame else { return }
+    let screen = screenForAnchor(anchorFrame)
     guard let screen = screen else { return }
     let visibleFrame = screen.visibleFrame
     let width = panel.frame.width
     let height = panel.frame.height
     let x = min(
-      max(screenButtonFrame.midX - width / 2, visibleFrame.minX + 8),
+      max(anchorFrame.midX - width / 2, visibleFrame.minX + 8),
       visibleFrame.maxX - width - 8
     )
-    let belowY = screenButtonFrame.minY - height - 8
+    let belowY = anchorFrame.minY - height - 8
     let y = belowY >= visibleFrame.minY
       ? belowY
-      : min(screenButtonFrame.maxY + 8, visibleFrame.maxY - height - 8)
+      : min(anchorFrame.maxY + 8, visibleFrame.maxY - height - 8)
     panel.setFrameOrigin(NSPoint(x: x, y: y))
+  }
+
+  private func resolvedPanelAnchorFrame() -> NSRect? {
+    if preferOwnAnchor, let ownFrame = statusItemScreenFrame() {
+      return ownFrame
+    }
+    if let ownFrame = statusItemScreenFrame() {
+      return ownFrame
+    }
+    if let iBarFrame = iBarAnchorFrame() {
+      return iBarFrame
+    }
+    return fallbackAnchorFrame()
+  }
+
+  private func screenForAnchor(_ anchorFrame: NSRect) -> NSScreen? {
+    NSScreen.screens.first { $0.frame.intersects(anchorFrame) } ?? NSScreen.main
+  }
+
+  private func fallbackAnchorFrame() -> NSRect? {
+    guard let screen = statusItem?.button?.window?.screen ?? NSScreen.main else {
+      return nil
+    }
+    let visibleFrame = screen.visibleFrame
+    return NSRect(
+      x: visibleFrame.maxX - 36,
+      y: visibleFrame.maxY,
+      width: 24,
+      height: 22
+    )
+  }
+
+  private func iBarApplication() -> NSRunningApplication? {
+    NSWorkspace.shared.runningApplications.first(where: {
+      let identity = [
+        $0.localizedName,
+        $0.bundleIdentifier,
+        $0.executableURL?.lastPathComponent,
+      ]
+      .compactMap { $0?.lowercased() }
+      .joined(separator: " ")
+      return identity.contains("ibar")
+    })
+  }
+
+  private func iBarAnchorFrame() -> NSRect? {
+    guard let application = iBarApplication() else { return nil }
+    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+    guard AXIsProcessTrustedWithOptions(options as CFDictionary) else { return nil }
+
+    let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
+    guard let extrasMenuBar = accessibilityValue(applicationElement, "AXExtrasMenuBar"),
+          let extrasElement = extrasMenuBar as? AXUIElement else {
+      return nil
+    }
+
+    let candidates = accessibilityChildren(extrasElement).compactMap { element -> (NSRect, String)? in
+      guard let frame = accessibilityFrame(element) else { return nil }
+      let role = accessibilityValue(element, kAXRoleAttribute as String) as? String ?? ""
+      guard role == "AXMenuItem" || role == "AXMenuBarItem" || role == "AXButton" else {
+        return nil
+      }
+      let title = accessibilityValue(element, kAXTitleAttribute as String) as? String ?? ""
+      return (frame, title)
+    }
+    guard !candidates.isEmpty else { return nil }
+    return candidates.first(where: { $0.1.lowercased().contains("ibar") })?.0
+      ?? candidates.max(by: { $0.0.midX < $1.0.midX })?.0
+  }
+
+  private func pressOwnStatusItemThroughAccessibility() -> Bool {
+    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+    guard AXIsProcessTrustedWithOptions(options as CFDictionary) else { return false }
+
+    let application = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
+    guard let extrasMenuBar = accessibilityValue(application, "AXExtrasMenuBar"),
+          let extrasElement = extrasMenuBar as? AXUIElement else {
+      return false
+    }
+    let candidates = accessibilityChildren(extrasElement).filter { element in
+      let role = accessibilityValue(element, kAXRoleAttribute as String) as? String ?? ""
+      return role == "AXMenuItem" || role == "AXMenuBarItem" || role == "AXButton"
+    }
+    guard let statusItem = candidates.first else { return false }
+    return AXUIElementPerformAction(statusItem, kAXPressAction as CFString) == .success
+  }
+
+  private func accessibilityValue(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {
+    var value: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else {
+      return nil
+    }
+    return value
+  }
+
+  private func accessibilityChildren(_ element: AXUIElement) -> [AXUIElement] {
+    guard let value = accessibilityValue(element, kAXChildrenAttribute as String) else {
+      return []
+    }
+    return value as? [AXUIElement] ?? []
+  }
+
+  private func accessibilityFrame(_ element: AXUIElement) -> NSRect? {
+    guard let positionValue = accessibilityValue(element, kAXPositionAttribute as String) as? AXValue,
+          let sizeValue = accessibilityValue(element, kAXSizeAttribute as String) as? AXValue else {
+      return nil
+    }
+    var position = CGPoint.zero
+    var size = CGSize.zero
+    guard AXValueGetValue(positionValue, .cgPoint, &position),
+          AXValueGetValue(sizeValue, .cgSize, &size),
+          size.width > 0,
+          size.height > 0 else {
+      return nil
+    }
+
+    let topY = NSScreen.screens.map { $0.frame.maxY }.max() ?? 0
+    return NSRect(
+      x: position.x,
+      y: topY - position.y - size.height,
+      width: size.width,
+      height: size.height
+    )
   }
 
   private func statusItemScreenFrame() -> NSRect? {
@@ -392,6 +545,7 @@ final class MenuBarPanelController: NSObject {
 
   private func hidePanel() {
     panel?.orderOut(nil)
+    preferOwnAnchor = false
   }
 
   private func requestRefresh() {
