@@ -15,7 +15,9 @@ import '../widgets/passphrase_dialog.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.onBeforeCredentialDialog});
+
+  final Future<void> Function()? onBeforeCredentialDialog;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -28,8 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final monitor = context.read<GpuMonitorProvider>();
       monitor.onCredentialProvider =
-          (CredentialKind kind, SshHost host, {String? reason}) =>
-              showCredentialDialog(context, kind, host, reason: reason);
+          (CredentialKind kind, SshHost host, {String? reason}) async {
+            await widget.onBeforeCredentialDialog?.call();
+            if (!mounted) return null;
+            return showCredentialDialog(context, kind, host, reason: reason);
+          };
       if (monitor.results.isEmpty) monitor.refresh();
     });
   }

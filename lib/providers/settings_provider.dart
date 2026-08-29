@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/ssh_config_parser.dart';
+import '../services/menu_bar_shortcut.dart';
 import '../models/ssh_host.dart';
 
 enum AppLanguage {
@@ -21,7 +22,7 @@ enum AppLanguage {
 
 /// Holds user preferences and the list of hosts discovered in ~/.ssh/config.
 /// Persisted via SharedPreferences: excluded aliases, refresh interval,
-/// auto-refresh toggle, CPU monitoring toggle.
+/// auto-refresh toggle, CPU monitoring toggle, menu bar shortcut.
 class SettingsProvider extends ChangeNotifier {
   static const _kExcluded = 'ssh_gpu.excluded_hosts';
   static const _kInterval = 'ssh_gpu.refresh_interval';
@@ -30,6 +31,7 @@ class SettingsProvider extends ChangeNotifier {
   static const _kShowCpuMetrics = 'ssh_gpu.show_cpu_metrics';
   static const _kCloseToBackground = 'ssh_gpu.close_to_background';
   static const _kAlertHosts = 'ssh_gpu.alert_hosts';
+  static const _kMenuBarShortcut = 'ssh_gpu.menu_bar_shortcut';
 
   static const double minInterval = 0.5;
   static const double maxInterval = 3600;
@@ -42,6 +44,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _closeToBackground = false;
   AppLanguage _language = AppLanguage.system;
   Set<String> _alertHosts = {};
+  String _menuBarShortcut = MenuBarShortcut.defaultValue;
 
   final Future<List<SshHost>> Function() _hostLoader;
 
@@ -57,6 +60,7 @@ class SettingsProvider extends ChangeNotifier {
   AppLanguage get language => _language;
   Locale? get locale => _language.locale;
   Set<String> get alertHosts => Set.unmodifiable(_alertHosts);
+  String get menuBarShortcut => _menuBarShortcut;
 
   /// Hosts that are NOT excluded — i.e. what should be queried.
   List<SshHost> get activeHosts => _allHosts
@@ -89,6 +93,11 @@ class SettingsProvider extends ChangeNotifier {
     if (rawAlerts != null) {
       _alertHosts = (jsonDecode(rawAlerts) as List).cast<String>().toSet();
     }
+    final rawShortcut = prefs.getString(_kMenuBarShortcut);
+    _menuBarShortcut =
+        rawShortcut != null && MenuBarShortcut.isValid(rawShortcut)
+        ? rawShortcut
+        : MenuBarShortcut.defaultValue;
     // Drop exclusions that no longer exist in config.
     final aliases = _allHosts.map((h) => h.alias).toSet();
     _excluded = _excluded.intersection(aliases);
@@ -154,6 +163,16 @@ class SettingsProvider extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> setMenuBarShortcut(String shortcut) async {
+    shortcut = shortcut.toLowerCase();
+    if (!MenuBarShortcut.isValid(shortcut) || shortcut == _menuBarShortcut) {
+      return;
+    }
+    _menuBarShortcut = shortcut;
+    notifyListeners();
+    await _persist();
+  }
+
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kExcluded, jsonEncode(_excluded.toList()));
@@ -163,6 +182,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool(_kCloseToBackground, _closeToBackground);
     await prefs.setString(_kLanguage, _language.name);
     await prefs.setString(_kAlertHosts, jsonEncode(_alertHosts.toList()));
+    await prefs.setString(_kMenuBarShortcut, _menuBarShortcut);
   }
 
   static String formatInterval(double seconds) {

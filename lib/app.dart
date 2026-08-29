@@ -11,9 +11,16 @@ import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 
 class SshGpuMonitorApp extends StatelessWidget {
-  const SshGpuMonitorApp({super.key, this.onHideToBackground});
+  const SshGpuMonitorApp({
+    super.key,
+    this.navigatorKey,
+    this.onHideToBackground,
+    this.onBeforeCredentialDialog,
+  });
 
+  final GlobalKey<NavigatorState>? navigatorKey;
   final Future<void> Function()? onHideToBackground;
+  final Future<void> Function()? onBeforeCredentialDialog;
 
   void _hideToBackground() {
     final callback = onHideToBackground;
@@ -25,6 +32,7 @@ class SshGpuMonitorApp extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
     final theme = context.watch<ThemeProvider>();
     return MaterialApp(
+      navigatorKey: navigatorKey,
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       locale: settings.locale,
@@ -61,7 +69,7 @@ class SshGpuMonitorApp extends StatelessWidget {
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const HomeScreen(),
+      home: HomeScreen(onBeforeCredentialDialog: onBeforeCredentialDialog),
     );
   }
 }

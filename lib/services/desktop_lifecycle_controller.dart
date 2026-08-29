@@ -85,7 +85,7 @@ class DesktopLifecycleController with WindowListener, TrayListener {
     await windowManager.hide();
   }
 
-  Future<void> _showWindow() async {
+  Future<void> showMainWindow() async {
     await windowManager.show();
     await windowManager.focus();
   }
@@ -110,7 +110,7 @@ class DesktopLifecycleController with WindowListener, TrayListener {
 
   @override
   void onTrayIconMouseDown() {
-    unawaited(_showWindow());
+    unawaited(showMainWindow());
   }
 
   @override
@@ -122,7 +122,7 @@ class DesktopLifecycleController with WindowListener, TrayListener {
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
       case _showWindowKey:
-        unawaited(_showWindow());
+        unawaited(showMainWindow());
         return;
       case _quitAppKey:
         unawaited(_quit());

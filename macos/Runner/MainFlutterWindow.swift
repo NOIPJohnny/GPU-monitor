@@ -11,5 +11,9 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()
+
+    if let appDelegate = NSApp.delegate as? AppDelegate {
+      appDelegate.configureMenuBar(with: flutterViewController, mainWindow: self)
+    }
   }
 }

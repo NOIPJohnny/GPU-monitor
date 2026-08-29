@@ -286,6 +286,24 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get menuBarShortcutTitle => '菜单栏快捷键';
+
+  @override
+  String get menuBarShortcutSubtitle => '按下快捷键显示或隐藏 Panel';
+
+  @override
+  String get menuBarShortcutRecord => '点击录入';
+
+  @override
+  String get menuBarShortcutRecording => '请按下组合键';
+
+  @override
+  String get menuBarShortcutReset => '恢复默认';
+
+  @override
+  String get menuBarShortcutInvalid => '至少需要一个修饰键';
+
+  @override
   String get desktopBehaviorTitle => '后台运行';
 
   @override
@@ -295,7 +313,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get closeToBackgroundWindowsSubtitle => '隐藏到系统托盘，监控和提醒继续运行';
 
   @override
-  String get closeToBackgroundMacosSubtitle => '应用保留在 Dock，监控和提醒继续运行';
+  String get closeToBackgroundMacosSubtitle => '在后台继续运行；可从菜单栏图标或 Dock 打开应用';
 
   @override
   String get appearance => '外观';
