@@ -266,7 +266,6 @@ final class MenuBarPanelController: NSObject {
   private func showPanel() {
     guard let panel = panel, statusItem?.button != nil else { return }
     NSApp.unhideWithoutActivation()
-    NSApp.activate(ignoringOtherApps: true)
     resizeAndPositionPanel()
     panel.orderFrontRegardless()
     panel.makeKey()
